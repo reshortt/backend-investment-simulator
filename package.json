@@ -1,0 +1,22 @@
+{
+  "name": "investment-simulator-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "watch" : "nodemon ./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitenterprise.xilinx.com/rshortt/investment-simulator-backend.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongodb": "^4.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.12"
+  }
+}
