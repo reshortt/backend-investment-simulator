@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require("cors")
 const {MongoClient}=require('mongodb')
 
 const url = 'mongodb://localhost:27017'
@@ -14,10 +15,11 @@ router.get('/investors/fetch_all', async (req, res) => {
 
 
     res.send (findResult)
-    console.log (req)
 })
 
 const app  = express();
+app.use(cors())
+app.options("*", cors())
 app.use('/', router);
 
 const server = app.listen(3005,  () => {
