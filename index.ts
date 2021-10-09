@@ -13,7 +13,7 @@ router.get('/investors/fetch_all', async (req, res) => {
 
     await client.connect();
     const db = client.db('investments')
-    const collection = db.collection('assets')
+    const collection = db.collection('investors')
     console.log("investors is " + collection)
     const findResult = await (collection.find({})).toArray()
     console.log("req is " + req)
