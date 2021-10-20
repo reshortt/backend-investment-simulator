@@ -33,7 +33,7 @@ router.get("/assets/:tickerSymbol", async (req, res) => {
   await client.connect();
   const db = client.db("investments");
   const collection = db.collection("assets");
-  console.log("investors is " + collection);
+  console.log("assets is " + collection);
 
   const findQuery = collection.find({
     symbol: req.params.tickerSymbol,
@@ -69,21 +69,14 @@ async function checkFavoriteStock(tickerSymbol: string) {
 }
 
 router.post("/signup", express.json(), async (req, res) => {
-  console.log("ackend signup entered");
   const email = req.body.email;
   const password = req.body.password;
   const name = req.body.name;
 
   await client.connect();
-  console.log("client connect");
+
   const db = client.db("investments");
   const collection = db.collection("investors");
-  console.log("investors colection obtained");
-
-console.log("email is " + email)
-console.log("password is " + password)
-console.log("name is" + name)
-
 
   if (!email || !password) {
     res.status(400);
@@ -92,8 +85,8 @@ console.log("name is" + name)
     });
     return;
   }
-  // console.log("checking MCK stock");
-  // const isValid =  checkFavoriteStock("MCK");
+   console.log("checking MCK stock");
+   const isValid =  checkFavoriteStock("MCK");
 
   // check for valid email string
   let doc = await collection.findOne({ email: email });
@@ -129,7 +122,7 @@ console.log("name is" + name)
     { email: email },
     {
       $set: {
-        cash: 100000,
+        cash: 1000000,
       },
     }
   );
