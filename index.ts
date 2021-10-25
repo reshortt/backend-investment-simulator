@@ -1,11 +1,11 @@
 import express = require("express");
 import cors = require("cors");
 import { MongoClient } from "mongodb";
-import e = require("express");
-import yahooStockAPI = require("yahoo-stock-api");
-import yahooHistory = require("yahoo-finance-history");
+// const yahooStockAPI = "yahoo-stock-api"
+// const yahooHistory = "yahoo-finance-history"
 global.fetch = require("node-fetch");
-import bodyParser = require("body-parser");
+import bodyParser = require("body-parser")
+const jwt = require("jsonwebtoken")
 
 const url: string = "mongodb://localhost:27017";
 const client: MongoClient = new MongoClient(url);
@@ -20,27 +20,23 @@ router.post("/login", express.json(), async (req, res) => {
   const db = client.db("investments");
   const collection = db.collection("investors");
   const foundUser = await collection.findOne({
-    email: req.body.userId,
+    email: req.body.email,
     password: req.body.password,
   });
 
-  console.log(foundUser);
+  if (!foundUser) {
+    console.log("never heard of user: " , req.body.email)
+    return res.status(401).send("Invalid Credentials")
+  }
+  
+// // just for testing
+// console.log("checking MCK stock");
+// const isValid =  checkFavoriteStock("MCK");
 
-  res.send(foundUser);
-});
-
-router.get("/assets/:tickerSymbol", async (req, res) => {
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("assets");
-  console.log("assets is " + collection);
-
-  const findQuery = collection.find({
-    symbol: req.params.tickerSymbol,
-  });
-  console.log("req is " + req);
-
-  res.send(await findQuery.toArray());
+  console.log(" welcome to ", foundUser.email)
+  const token = jwt.sign(foundUser, process.env.JWT_SECRET, {expiresIn: 2000})
+  const replyObject = {userToken:token, userEmail:foundUser.email}
+  res.status(200).send(replyObject);
 });
 
 const app = express();
@@ -53,20 +49,20 @@ const server = app.listen(port, () => {
   console.log("backend is running");
 });
 
-async function checkFavoriteStock(tickerSymbol: string) {
-  const data = await yahooHistory.getPriceHistory(tickerSymbol);
-  console.log(await data.dividendHistory);
+// async function checkFavoriteStock(tickerSymbol: string) {
+//   const data = await yahooHistory.getPriceHistory(tickerSymbol);
+//   console.log(await data.dividendHistory);
 
-  const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
-  console.log(symbol);
-  if (!symbol.error) {
-    console.log(tickerSymbol + ": valid");
-    return true;
-  } else {
-    console.log(tickerSymbol + ": invalid");
-    return false;
-  }
-}
+//   const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
+//   console.log(symbol);
+//   if (!symbol.error) {
+//     console.log(tickerSymbol + ": valid");
+//     return true;
+//   } else {
+//     console.log(tickerSymbol + ": invalid");
+//     return false;
+//   }
+// }
 
 router.post("/signup", express.json(), async (req, res) => {
   const email = req.body.email;
@@ -85,8 +81,6 @@ router.post("/signup", express.json(), async (req, res) => {
     });
     return;
   }
-   console.log("checking MCK stock");
-   const isValid =  checkFavoriteStock("MCK");
 
   // check for valid email string
   let doc = await collection.findOne({ email: email });
@@ -95,6 +89,7 @@ router.post("/signup", express.json(), async (req, res) => {
     res.json({
       message: "email already exists",
     });
+    console.log("this emailreau exists")
     return;
   }
 
