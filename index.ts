@@ -1,11 +1,15 @@
 import express = require("express");
 import cors = require("cors");
 import { MongoClient } from "mongodb";
-// const yahooStockAPI = "yahoo-stock-api"
-// const yahooHistory = "yahoo-finance-history"
+const yahooStockAPI = require("yahoo-stock-api")
+const yahooHistory = require("yahoo-finance-history")
+//const yahooFinance = require("yahoo-finance2");
+//import stockMarketData from 'stock-market-data'
+//const api = require('eodhistoricaldata-api');
+
 global.fetch = require("node-fetch");
-import bodyParser = require("body-parser")
-const jwt = require("jsonwebtoken")
+import bodyParser = require("body-parser");
+const jwt = require("jsonwebtoken");
 
 const url: string = "mongodb://localhost:27017";
 const client: MongoClient = new MongoClient(url);
@@ -25,17 +29,19 @@ router.post("/login", express.json(), async (req, res) => {
   });
 
   if (!foundUser) {
-    console.log("never heard of user: " , req.body.email)
-    return res.status(401).send("Invalid Credentials")
+    console.log("never heard of user: ", req.body.email);
+    return res.status(401).send("Invalid Credentials");
   }
-  
-// // just for testing
-// console.log("checking MCK stock");
-// const isValid =  checkFavoriteStock("MCK");
 
-  console.log(" welcome to ", foundUser.email)
-  const token = jwt.sign(foundUser, process.env.JWT_SECRET, {expiresIn: 2000})
-  const replyObject = {userToken:token, userEmail:foundUser.email}
+  // // just for testing
+  console.log("checking MCK stock");
+  const isValid = checkFavoriteStock("MCK");
+
+  console.log(" welcome to ", foundUser.email);
+  const token = jwt.sign(foundUser, process.env.JWT_SECRET, {
+    expiresIn: 2000,
+  });
+  const replyObject = { userToken: token, userEmail: foundUser.email };
   res.status(200).send(replyObject);
 });
 
@@ -49,20 +55,20 @@ const server = app.listen(port, () => {
   console.log("backend is running");
 });
 
-// async function checkFavoriteStock(tickerSymbol: string) {
-//   const data = await yahooHistory.getPriceHistory(tickerSymbol);
-//   console.log(await data.dividendHistory);
+async function checkFavoriteStock(tickerSymbol: string) {
+  const data = await yahooHistory.getPriceHistory(tickerSymbol);
+  console.log(await data.dividendHistory);
 
-//   const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
-//   console.log(symbol);
-//   if (!symbol.error) {
-//     console.log(tickerSymbol + ": valid");
-//     return true;
-//   } else {
-//     console.log(tickerSymbol + ": invalid");
-//     return false;
-//   }
-// }
+  const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
+  console.log(symbol);
+  if (!symbol.error) {
+    console.log(tickerSymbol + ": valid");
+    return true;
+  } else {
+    console.log(tickerSymbol + ": invalid");
+    return false;
+  }
+}
 
 router.post("/signup", express.json(), async (req, res) => {
   const email = req.body.email;
@@ -89,7 +95,7 @@ router.post("/signup", express.json(), async (req, res) => {
     res.json({
       message: "email already exists",
     });
-    console.log("this emailreau exists")
+    console.log("this email exists");
     return;
   }
 
