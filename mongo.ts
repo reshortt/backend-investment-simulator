@@ -1,4 +1,4 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 
 const url: string = "mongodb://localhost:27017";
 const client: MongoClient = new MongoClient(url);
@@ -12,5 +12,20 @@ export const login = async (email:string, password:string)=> {
       password: password
     });
     return foundUser
+}
+
+
+export const getEmailById = async (userId:string): Promise<string> => {
+  await client.connect();
+  console.log("getting email from user id ", userId)
+  const db = client.db("investments");
+  const collection = db.collection("investors");
+  const foundUser = await collection.findOne({
+    _id: new ObjectId(userId),
+  });
+  if (!foundUser) {
+    return "";
+  }
+  return foundUser.email;
 }
 

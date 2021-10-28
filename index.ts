@@ -3,9 +3,7 @@ import cors = require("cors");
 import { MongoClient } from "mongodb";
 const yahooStockAPI = require("yahoo-stock-api")
 const yahooHistory = require("yahoo-finance-history")
-//const yahooFinance = require("yahoo-finance2");
-//import stockMarketData from 'stock-market-data'
-//const api = require('eodhistoricaldata-api');
+import {getEmailById} from "./mongo"
 
 global.fetch = require("node-fetch");
 import bodyParser = require("body-parser");
@@ -34,14 +32,19 @@ router.post("/login", express.json(), async (req, res) => {
   }
 
   // // just for testing
-  console.log("checking MCK stock");
-  const isValid = checkFavoriteStock("MCK");
+  // console.log("checking MCK stock");
+  // const isValid = checkFavoriteStock("MCK");
+
+
+  console.log("Found User is ", foundUser)
+
 
   console.log(" welcome to ", foundUser.email);
-  const token = jwt.sign(foundUser, process.env.JWT_SECRET, {
-    expiresIn: 2000,
+  console.log(" also, welcome to ", foundUser.name);
+  const token = jwt.sign({ userId: foundUser._id }, process.env.JWT_SECRET, {
+    expiresIn: 2000000, // TODO: go back to 2s
   });
-  const replyObject = { userToken: token, userEmail: foundUser.email };
+  const replyObject = { token, email:foundUser.email, userName: foundUser.name };
   res.status(200).send(replyObject);
 });
 
@@ -132,3 +135,18 @@ router.post("/signup", express.json(), async (req, res) => {
   res.json({ message: "User " + email + " successfully added and given $1M" });
   return;
 });
+
+router.get("/API/getEmailById", async(req, res) => {
+
+  console.log ("headers = " , req.headers);
+  const token = req.headers.authorization.split(' ')[1]
+  const payload = await jwt.verify(token, process.env.JWT_SECRET)
+  const email:string = await getEmailById(payload.userId)
+  if (!email) {
+    res.status(401).send("Invalid user id")
+  } else {
+    console.log ("returned email: ", email)
+    res.status(200).json({email: email})
+  }
+})
+
