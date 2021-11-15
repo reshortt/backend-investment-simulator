@@ -29,3 +29,18 @@ export const getEmailById = async (userId:string): Promise<string> => {
   return foundUser.email;
 }
 
+
+
+export const getUser = async (userId:string): Promise<Record<string, unknown>> => {
+  await client.connect();
+  console.log("getting email from user id ", userId)
+  const db = client.db("investments");
+  const collection = db.collection("investors");
+  const foundUser = await collection.findOne({
+    _id: new ObjectId(userId),
+  });
+  if (!foundUser) {
+    return null;
+  }
+  return foundUser;
+}

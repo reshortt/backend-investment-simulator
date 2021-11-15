@@ -3,7 +3,7 @@ import cors = require("cors");
 import { MongoClient } from "mongodb";
 const yahooStockAPI = require("yahoo-stock-api")
 const yahooHistory = require("yahoo-finance-history")
-import {getEmailById} from "./mongo"
+import {getEmailById, getUser} from "./mongo"
 
 global.fetch = require("node-fetch");
 import bodyParser = require("body-parser");
@@ -23,7 +23,7 @@ router.post("/login", express.json(), async (req, res) => {
   const collection = db.collection("investors");
   const foundUser = await collection.findOne({
     email: req.body.email,
-    password: req.body.password,
+    password: req.body.password
   });
 
   if (!foundUser) {
@@ -42,7 +42,7 @@ router.post("/login", express.json(), async (req, res) => {
   console.log(" welcome to ", foundUser.email);
   console.log(" also, welcome to ", foundUser.name);
   const token = jwt.sign({ userId: foundUser._id }, process.env.JWT_SECRET, {
-    expiresIn: 2000000, // TODO: go back to 2s
+    expiresIn: 200000, // TODO: go back to 2s
   });
   const replyObject = { token, email:foundUser.email, userName: foundUser.name };
   res.status(200).send(replyObject);
@@ -77,6 +77,7 @@ router.post("/signup", express.json(), async (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   const name = req.body.name;
+  console.log ("demo for oct29")
 
   await client.connect();
 
@@ -136,7 +137,10 @@ router.post("/signup", express.json(), async (req, res) => {
   return;
 });
 
-router.get("/API/getEmailById", async(req, res) => {
+
+
+
+router.get("ail/API/getEmById", async(req, res) => {
 
   console.log ("headers = " , req.headers);
   const token = req.headers.authorization.split(' ')[1]
@@ -150,3 +154,16 @@ router.get("/API/getEmailById", async(req, res) => {
   }
 })
 
+router.get("/API/getUser", async(req, res) => {
+
+  console.log ("headers = " , req.headers);
+  const token = req.headers.authorization.split(' ')[1]
+  const payload = await jwt.verify(token, process.env.JWT_SECRET)
+  const foundUser = await getUser(payload.userId)
+  if (!foundUser) {
+    res.status(401).send("Invalid user id")
+  } else {
+    console.log ("returned user: ", foundUser)
+    res.status(200).json(foundUser)
+  }
+})
