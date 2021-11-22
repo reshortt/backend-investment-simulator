@@ -4,6 +4,7 @@ import { MongoClient } from "mongodb";
 const yahooStockAPI = require("yahoo-stock-api")
 const yahooHistory = require("yahoo-finance-history")
 import {getEmailById, getUser} from "./mongo"
+import {getPrice, isValidSymbol} from "./stocks"
 
 global.fetch = require("node-fetch");
 import bodyParser = require("body-parser");
@@ -137,10 +138,7 @@ router.post("/signup", express.json(), async (req, res) => {
   return;
 });
 
-
-
-
-router.get("ail/API/getEmById", async(req, res) => {
+router.get("ail/API/getEmailById", async(req, res) => {
 
   console.log ("headers = " , req.headers);
   const token = req.headers.authorization.split(' ')[1]
@@ -154,6 +152,24 @@ router.get("ail/API/getEmById", async(req, res) => {
   }
 })
 
+router.get("/API/checkStock", async(req, res) => {
+  const tickerSymbol = req.query.tickerSymbol.toString()
+
+  const isValid:boolean = await (isValidSymbol(tickerSymbol))
+  if (!isValid) {
+    console.log(`Invalid Symbol: ${tickerSymbol} - returning 400`, )
+    res.status(400).send (`Invalid Symbol: ${tickerSymbol}`)
+    return
+  }
+  
+
+  //console.log(req)
+  console.log("req.params is: ", req.query)
+  //const tickerSymbol = req.headers.
+  console.log("ticker symbol is ", tickerSymbol)
+  res.status(200).send((await getPrice(tickerSymbol)).toString())  
+})
+
 router.get("/API/getUser", async(req, res) => {
 
   console.log ("headers = " , req.headers);
@@ -163,7 +179,7 @@ router.get("/API/getUser", async(req, res) => {
   if (!foundUser) {
     res.status(401).send("Invalid user id")
   } else {
-    console.log ("returned user: ", foundUser)
+    //console.log ("returned user: ", foundUser)
     res.status(200).json(foundUser)
   }
 })

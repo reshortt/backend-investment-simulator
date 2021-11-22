@@ -1,4 +1,4 @@
-import { MongoClient, ObjectId } from "mongodb";
+import { MongoClient, ObjectId, Document } from "mongodb";
 
 const url: string = "mongodb://localhost:27017";
 const client: MongoClient = new MongoClient(url);
@@ -31,7 +31,7 @@ export const getEmailById = async (userId:string): Promise<string> => {
 
 
 
-export const getUser = async (userId:string): Promise<Record<string, unknown>> => {
+export const getUser = async (userId:string): Promise<Document> => {
   await client.connect();
   console.log("getting email from user id ", userId)
   const db = client.db("investments");
@@ -44,3 +44,11 @@ export const getUser = async (userId:string): Promise<Record<string, unknown>> =
   }
   return foundUser;
 }
+
+export const getBalance = async (userId:string): Promise<number> => {
+  await client.connect();
+  const user = await getUser(userId);
+  return 1.0;
+}
+
+
