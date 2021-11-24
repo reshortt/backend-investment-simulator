@@ -1,10 +1,10 @@
 import express = require("express");
 import cors = require("cors");
 import { MongoClient } from "mongodb";
-const yahooStockAPI = require("yahoo-stock-api")
-const yahooHistory = require("yahoo-finance-history")
-import {getEmailById, getUser} from "./mongo"
-import {getPrice, isValidSymbol} from "./stocks"
+const yahooStockAPI = require("yahoo-stock-api");
+const yahooHistory = require("yahoo-finance-history");
+import { getEmailById, getUser } from "./mongo";
+import { getPrice, isValidSymbol } from "./stocks";
 
 global.fetch = require("node-fetch");
 import bodyParser = require("body-parser");
@@ -24,7 +24,7 @@ router.post("/login", express.json(), async (req, res) => {
   const collection = db.collection("investors");
   const foundUser = await collection.findOne({
     email: req.body.email,
-    password: req.body.password
+    password: req.body.password,
   });
 
   if (!foundUser) {
@@ -32,20 +32,18 @@ router.post("/login", express.json(), async (req, res) => {
     return res.status(401).send("Invalid Credentials");
   }
 
-  // // just for testing
-  // console.log("checking MCK stock");
-  // const isValid = checkFavoriteStock("MCK");
-
-
-  console.log("Found User is ", foundUser)
-
+  console.log("Found User is ", foundUser);
 
   console.log(" welcome to ", foundUser.email);
   console.log(" also, welcome to ", foundUser.name);
   const token = jwt.sign({ userId: foundUser._id }, process.env.JWT_SECRET, {
     expiresIn: 200000, // TODO: go back to 2s
   });
-  const replyObject = { token, email:foundUser.email, userName: foundUser.name };
+  const replyObject = {
+    token,
+    email: foundUser.email,
+    userName: foundUser.name,
+  };
   res.status(200).send(replyObject);
 });
 
@@ -78,7 +76,7 @@ router.post("/signup", express.json(), async (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   const name = req.body.name;
-  console.log ("demo for oct29")
+  console.log("demo for oct29");
 
   await client.connect();
 
@@ -138,48 +136,90 @@ router.post("/signup", express.json(), async (req, res) => {
   return;
 });
 
-router.get("ail/API/getEmailById", async(req, res) => {
-
-  console.log ("headers = " , req.headers);
-  const token = req.headers.authorization.split(' ')[1]
-  const payload = await jwt.verify(token, process.env.JWT_SECRET)
-  const email:string = await getEmailById(payload.userId)
+router.get("ail/API/getEmailById", async (req, res) => {
+  console.log("headers = ", req.headers);
+  const token = req.headers.authorization.split(" ")[1];
+  const payload = await jwt.verify(token, process.env.JWT_SECRET);
+  const email: string = await getEmailById(payload.userId);
   if (!email) {
-    res.status(401).send("Invalid user id")
+    res.status(401).send("Invalid user id");
   } else {
-    console.log ("returned email: ", email)
-    res.status(200).json({email: email})
+    console.log("returned email: ", email);
+    res.status(200).json({ email: email });
   }
-})
+});
 
-router.get("/API/checkStock", async(req, res) => {
-  const tickerSymbol = req.query.tickerSymbol.toString()
+router.get("/API/checkStock", async (req, res) => {
+  const tickerSymbol = req.query.tickerSymbol.toString();
 
-  const isValid:boolean = await (isValidSymbol(tickerSymbol))
+  const isValid: boolean = await isValidSymbol(tickerSymbol);
   if (!isValid) {
-    console.log(`Invalid Symbol: ${tickerSymbol} - returning 400`, )
-    res.status(400).send (`Invalid Symbol: ${tickerSymbol}`)
-    return
+    console.log(`Invalid Symbol: ${tickerSymbol} - returning 400`);
+    res.status(400).send(`Invalid Symbol: ${tickerSymbol}`);
+    return;
   }
-  
 
   //console.log(req)
-  console.log("req.params is: ", req.query)
+  console.log("req.params is: ", req.query);
   //const tickerSymbol = req.headers.
-  console.log("ticker symbol is ", tickerSymbol)
-  res.status(200).send((await getPrice(tickerSymbol)).toString())  
-})
+  console.log("ticker symbol is ", tickerSymbol);
+  res.status(200).send((await getPrice(tickerSymbol)).toString());
+});
 
-router.get("/API/getUser", async(req, res) => {
-
-  console.log ("headers = " , req.headers);
-  const token = req.headers.authorization.split(' ')[1]
-  const payload = await jwt.verify(token, process.env.JWT_SECRET)
-  const foundUser = await getUser(payload.userId)
+router.get("/API/getUser", async (req, res) => {
+  console.log("headers = ", req.headers);
+  const token = req.headers.authorization.split(" ")[1];
+  const payload = await jwt.verify(token, process.env.JWT_SECRET);
+  const foundUser = await getUser(payload.userId);
   if (!foundUser) {
-    res.status(401).send("Invalid user id")
+    res.status(401).send("Invalid user id");
   } else {
     //console.log ("returned user: ", foundUser)
-    res.status(200).json(foundUser)
+    res.status(200).json(foundUser);
   }
-})
+});
+
+router.get("/API/getBalance", async (req, res) => {
+  console.log("headers = ", req.headers);
+  const token = req.headers.authorization.split(" ")[1];
+  const payload = await jwt.verify(token, process.env.JWT_SECRET);
+  const foundUser = await getUser(payload.userId);
+  if (!foundUser) {
+    res.status(401).send("Invalid user id");
+    return;
+  }
+
+
+
+
+
+  /*
+  const positionValues = await foundUser.positions.map(
+        async (currentPosition) => {
+            // For each stock position, reduce to a singular value.
+            const currentStockPrice: number = await getPrice(currentPosition.symbol)
+            return currentPosition.basis.reduce((previousBasis, currentBasis) => {
+                // Retrieve each position basis, and multiply the stock count by the current ticker price.
+                return previousBasis.shares*currentStockPrice + currentBasis.shares*currentStockPrice;
+                // We should multiply the stock value by the basis.share
+            }, Promise.resolve({shares:0}))
+                ,Promise.resolve({basis:[{shares:0}]})});
+
+    const userBalance:number = positionValues.reduce((previousPositionValue, currentPositionValue) => previousPositionValue + currentPositionValue, 0);
+    res.status(200).json({balance:userBalancePromise})
+  */
+
+  const userBalanceArray = await Promise.all(foundUser.positions.map(
+    async (currentPosition) => {
+      const currentStockPrice: number = await getPrice(currentPosition.symbol) // stocks.ts
+      
+      const currentBasesValue: number = currentPosition.basis.reduce((previousBasis, currentBasis) => {
+        return previousBasis + currentBasis.shares*currentStockPrice;
+        // We should multiply the stock value by the basis.share
+      }, 0);
+      return currentBasesValue
+    }
+  ));
+  const userBalance = userBalanceArray.reduce((prev:number, curr:number) => prev+curr) + foundUser.cash
+  res.status(200).json({balance:userBalance})
+});

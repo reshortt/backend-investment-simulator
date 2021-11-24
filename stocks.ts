@@ -9,10 +9,10 @@ export async function checkFavoriteStock(tickerSymbol: string) {
   const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
   console.log(symbol);
   if (!symbol.error) {
-    console.log(tickerSymbol + ": valid");
+    //console.log(tickerSymbol + ": valid");
     return true;
   } else {
-    console.log(tickerSymbol + ": invalid");
+    //console.log(tickerSymbol + ": invalid");
     return false;
   }
 }
@@ -21,11 +21,11 @@ export const getPrice = async (tickerSymbol: string): Promise<number> => {
   const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
   console.log("stock info for ", tickerSymbol, " is ", symbol);
   const data = await yahooHistory.getPriceHistory(tickerSymbol);
-  console.log(await data.dividendHistory);
+  //console.log(await data.dividendHistory);
   let bid: string = symbol.response.bid.split(" x ")[0];
   bid = bid.replace(",", "");
-  console.log("bid = ", bid, " and ", Number(bid));
-  if (Number(bid) > 0) {
+  if (Number(bid) > 0 && Number(bid) != NaN) {
+    console.log("bid = ", bid, " and ", Number(bid));
     return Number(bid);
   }
   return Number(symbol.response.previousClose);
@@ -38,7 +38,7 @@ export const isValidSymbol = async (tickerSymbol: string): Promise<boolean> => {
     return false;
   }
 
-  console.log(`${tickerSymbol} is ${name}`)
+  //console.log(`${tickerSymbol} is ${name}`)
 
   const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
   
