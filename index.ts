@@ -1,13 +1,10 @@
 import express = require("express");
 import cors = require("cors");
 import { MongoClient } from "mongodb";
-const yahooStockAPI = require("yahoo-stock-api");
-const yahooHistory = require("yahoo-finance-history");
 import { getEmailById, getUser } from "./mongo";
-import { getPrice, isValidSymbol } from "./stocks";
+import { getPrice, getTickerName, isValidSymbol } from "./stocks";
 
 global.fetch = require("node-fetch");
-import bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
 
 const url: string = "mongodb://localhost:27017";
@@ -57,20 +54,51 @@ const server = app.listen(port, () => {
   console.log("backend is running");
 });
 
-async function checkFavoriteStock(tickerSymbol: string) {
-  const data = await yahooHistory.getPriceHistory(tickerSymbol);
-  console.log(await data.dividendHistory);
+// async function checkFavoriteStock(tickerSymbol: string) {
+//   const data = await yahooHistory.getPriceHistory(tickerSymbol);
+//   console.log(await data.dividendHistory);
 
-  const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
-  console.log(symbol);
-  if (!symbol.error) {
-    console.log(tickerSymbol + ": valid");
-    return true;
-  } else {
-    console.log(tickerSymbol + ": invalid");
-    return false;
+//   const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
+//   console.log(symbol);
+//   if (!symbol.error) {
+//     console.log(tickerSymbol + ": valid");
+//     return true;
+//   } else {
+//     console.log(tickerSymbol + ": invalid");
+//     return false;
+//   }
+// }
+
+
+// router.get("ail/API/getEmailById", async (req, res) => {
+//   console.log("headers = ", req.headers);
+//   const token = req.headers.authorization.split(" ")[1];
+//   const payload = await jwt.verify(token, process.env.JWT_SECRET);
+//   const email: string = await getEmailById(payload.userId);
+//   if (!email) {
+//     res.status(401).send("Invalid user id");
+//   } else {
+//     console.log("returned email: ", email);
+//     res.status(200).json({ email: email });
+//   }
+// });
+
+router.get("/API/checkStock", async (req, res) => {
+  const tickerSymbol = req.query.tickerSymbol.toString();
+
+  const isValid: boolean = await isValidSymbol(tickerSymbol);
+  if (!isValid) {
+    console.log(`Invalid Symbol: ${tickerSymbol} - returning 400`);
+    res.status(400).send(`Invalid Symbol: ${tickerSymbol}`);
+    return;
   }
-}
+
+  //console.log(req)
+  console.log("req.params is: ", req.query);
+  //const tickerSymbol = req.headers.
+  console.log("ticker symbol is ", tickerSymbol);
+  res.status(200).send((await getPrice(tickerSymbol, false)).toString());
+});
 
 router.post("/signup", express.json(), async (req, res) => {
   const email = req.body.email;
@@ -136,36 +164,6 @@ router.post("/signup", express.json(), async (req, res) => {
   return;
 });
 
-router.get("ail/API/getEmailById", async (req, res) => {
-  console.log("headers = ", req.headers);
-  const token = req.headers.authorization.split(" ")[1];
-  const payload = await jwt.verify(token, process.env.JWT_SECRET);
-  const email: string = await getEmailById(payload.userId);
-  if (!email) {
-    res.status(401).send("Invalid user id");
-  } else {
-    console.log("returned email: ", email);
-    res.status(200).json({ email: email });
-  }
-});
-
-router.get("/API/checkStock", async (req, res) => {
-  const tickerSymbol = req.query.tickerSymbol.toString();
-
-  const isValid: boolean = await isValidSymbol(tickerSymbol);
-  if (!isValid) {
-    console.log(`Invalid Symbol: ${tickerSymbol} - returning 400`);
-    res.status(400).send(`Invalid Symbol: ${tickerSymbol}`);
-    return;
-  }
-
-  //console.log(req)
-  console.log("req.params is: ", req.query);
-  //const tickerSymbol = req.headers.
-  console.log("ticker symbol is ", tickerSymbol);
-  res.status(200).send((await getPrice(tickerSymbol)).toString());
-});
-
 router.get("/API/getUser", async (req, res) => {
   console.log("headers = ", req.headers);
   const token = req.headers.authorization.split(" ")[1];
@@ -181,6 +179,7 @@ router.get("/API/getUser", async (req, res) => {
 
 router.get("/API/getBalance", async (req, res) => {
   console.log("headers = ", req.headers);
+  const yesterday:boolean = Boolean(req.query.yesterday);
   const token = req.headers.authorization.split(" ")[1];
   const payload = await jwt.verify(token, process.env.JWT_SECRET);
   const foundUser = await getUser(payload.userId);
@@ -189,29 +188,10 @@ router.get("/API/getBalance", async (req, res) => {
     return;
   }
 
-
-
-
-
-  /*
-  const positionValues = await foundUser.positions.map(
-        async (currentPosition) => {
-            // For each stock position, reduce to a singular value.
-            const currentStockPrice: number = await getPrice(currentPosition.symbol)
-            return currentPosition.basis.reduce((previousBasis, currentBasis) => {
-                // Retrieve each position basis, and multiply the stock count by the current ticker price.
-                return previousBasis.shares*currentStockPrice + currentBasis.shares*currentStockPrice;
-                // We should multiply the stock value by the basis.share
-            }, Promise.resolve({shares:0}))
-                ,Promise.resolve({basis:[{shares:0}]})});
-
-    const userBalance:number = positionValues.reduce((previousPositionValue, currentPositionValue) => previousPositionValue + currentPositionValue, 0);
-    res.status(200).json({balance:userBalancePromise})
-  */
-
+  // Promise.all waits for all promises in the passed in array to
   const userBalanceArray = await Promise.all(foundUser.positions.map(
     async (currentPosition) => {
-      const currentStockPrice: number = await getPrice(currentPosition.symbol) // stocks.ts
+      const currentStockPrice: number = await getPrice(currentPosition.symbol, yesterday) // stocks.ts
       
       const currentBasesValue: number = currentPosition.basis.reduce((previousBasis, currentBasis) => {
         return previousBasis + currentBasis.shares*currentStockPrice;
@@ -223,3 +203,32 @@ router.get("/API/getBalance", async (req, res) => {
   const userBalance = userBalanceArray.reduce((prev:number, curr:number) => prev+curr) + foundUser.cash
   res.status(200).json({balance:userBalance})
 });
+
+router.get("/API/getAssets", async (req, res) => {
+
+  //TODO: refactor from here...
+  const token = req.headers.authorization.split(" ")[1];
+  const payload = await jwt.verify(token, process.env.JWT_SECRET);
+  const foundUser = await getUser(payload.userId);
+  if (!foundUser) {
+    res.status(401).send("Invalid user id");
+    return;
+  }
+  //....n to here
+
+  // Promise.all waits for all promises in the passed in array to
+  const assetsArray:object[] = await Promise.all(foundUser.positions.map(
+    async (currentPosition) => {
+      const currentSymbol:string = currentPosition.symbol
+      const currentName:string = await getTickerName(currentSymbol)
+      //const bid:double = await 
+
+      return {symbol:currentSymbol, name:currentName}
+    }
+  ));
+
+  res.status(200).json({assets:assetsArray})
+});
+
+
+

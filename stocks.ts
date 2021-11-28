@@ -1,6 +1,6 @@
 const yahooStockAPI = require("yahoo-stock-api");
 const yahooHistory = require("yahoo-finance-history");
-const ticker = require('stock-ticker-symbol');
+const ticker = require("stock-ticker-symbol");
 
 export async function checkFavoriteStock(tickerSymbol: string) {
   const data = await yahooHistory.getPriceHistory(tickerSymbol);
@@ -17,23 +17,25 @@ export async function checkFavoriteStock(tickerSymbol: string) {
   }
 }
 
-export const getPrice = async (tickerSymbol: string): Promise<number> => {
+export const getPrice = async (
+  tickerSymbol: string,
+  yesterday: boolean
+): Promise<number> => {
   const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
   console.log("stock info for ", tickerSymbol, " is ", symbol);
-  const data = await yahooHistory.getPriceHistory(tickerSymbol);
-  //console.log(await data.dividendHistory);
-  let bid: string = symbol.response.bid.split(" x ")[0];
-  bid = bid.replace(",", "");
-  if (Number(bid) > 0 && Number(bid) != NaN) {
-    console.log("bid = ", bid, " and ", Number(bid));
-    return Number(bid);
+  if (!yesterday) {
+    let bid: string = symbol.response.bid.split(" x ")[0];
+    bid = bid.replace(",", "");
+    if (Number(bid) > 0 && Number(bid) != NaN) {
+      console.log("bid = ", bid, " and ", Number(bid));
+      return Number(bid);
+    }
   }
   return Number(symbol.response.previousClose);
 };
 
 export const isValidSymbol = async (tickerSymbol: string): Promise<boolean> => {
-
-  const name:string = await ticker.lookup(tickerSymbol)
+  const name: string = await ticker.lookup(tickerSymbol);
   if (!name) {
     return false;
   }
@@ -41,9 +43,11 @@ export const isValidSymbol = async (tickerSymbol: string): Promise<boolean> => {
   //console.log(`${tickerSymbol} is ${name}`)
 
   const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
-  
+
   const isError: boolean = Boolean(symbol.error);
   if (isError) return false;
   if (symbol.response.previousClose == null) return false;
   return true;
 };
+
+export const getTickerName = async (tickerSymbol:string):Promise<string> => await ticker.lookup(tickerSymbol)

@@ -45,10 +45,5 @@ export const getUser = async (userId:string): Promise<Document> => {
   return foundUser;
 }
 
-export const getBalance = async (userId:string): Promise<number> => {
-  await client.connect();
-  const user = await getUser(userId);
-  return 1.0;
-}
 
 
