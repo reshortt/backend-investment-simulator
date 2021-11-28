@@ -3,6 +3,7 @@ import cors = require("cors");
 import { MongoClient } from "mongodb";
 import { getEmailById, getUser } from "./mongo";
 import { getPrice, getTickerName, isValidSymbol } from "./stocks";
+import { Asset, StockPrices, UserInfo } from "./types";
 
 global.fetch = require("node-fetch");
 const jwt = require("jsonwebtoken");
@@ -94,10 +95,10 @@ router.get("/API/checkStock", async (req, res) => {
   }
 
   //console.log(req)
-  console.log("req.params is: ", req.query);
+  //console.log("req.params is: ", req.query);
   //const tickerSymbol = req.headers.
-  console.log("ticker symbol is ", tickerSymbol);
-  res.status(200).send((await getPrice(tickerSymbol, false)).toString());
+  //console.log("ticker symbol is ", tickerSymbol);
+  res.status(200).send(await getPrice(tickerSymbol));
 });
 
 router.post("/signup", express.json(), async (req, res) => {
@@ -173,7 +174,8 @@ router.get("/API/getUser", async (req, res) => {
     res.status(401).send("Invalid user id");
   } else {
     //console.log ("returned user: ", foundUser)
-    res.status(200).json(foundUser);
+    const user:UserInfo = {name:foundUser.name, email: foundUser.emai}
+    res.status(200).json(user);
   }
 });
 
@@ -191,16 +193,16 @@ router.get("/API/getBalance", async (req, res) => {
   // Promise.all waits for all promises in the passed in array to
   const userBalanceArray = await Promise.all(foundUser.positions.map(
     async (currentPosition) => {
-      const currentStockPrice: number = await getPrice(currentPosition.symbol, yesterday) // stocks.ts
+      const currentStockPrice: StockPrices = await getPrice(currentPosition.symbol) // stocks.ts
       
       const currentBasesValue: number = currentPosition.basis.reduce((previousBasis, currentBasis) => {
-        return previousBasis + currentBasis.shares*currentStockPrice;
-        // We should multiply the stock value by the basis.share
+        const price:number = yesterday? currentStockPrice.previousClose : currentStockPrice.bid
+        return previousBasis + currentBasis.shares*price;
       }, 0);
       return currentBasesValue
     }
   ));
-  const userBalance = userBalanceArray.reduce((prev:number, curr:number) => prev+curr) + foundUser.cash
+  const userBalance:number = userBalanceArray.reduce((prev:number, curr:number) => prev+curr) + foundUser.cash
   res.status(200).json({balance:userBalance})
 });
 
@@ -217,11 +219,10 @@ router.get("/API/getAssets", async (req, res) => {
   //....n to here
 
   // Promise.all waits for all promises in the passed in array to
-  const assetsArray:object[] = await Promise.all(foundUser.positions.map(
+  const assetsArray:Asset[] = await Promise.all(foundUser.positions.map(
     async (currentPosition) => {
       const currentSymbol:string = currentPosition.symbol
       const currentName:string = await getTickerName(currentSymbol)
-      //const bid:double = await 
 
       return {symbol:currentSymbol, name:currentName}
     }

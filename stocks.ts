@@ -1,3 +1,5 @@
+import { StockPrices } from "./types";
+
 const yahooStockAPI = require("yahoo-stock-api");
 const yahooHistory = require("yahoo-finance-history");
 const ticker = require("stock-ticker-symbol");
@@ -17,21 +19,37 @@ export async function checkFavoriteStock(tickerSymbol: string) {
   }
 }
 
-export const getPrice = async (
-  tickerSymbol: string,
-  yesterday: boolean
-): Promise<number> => {
+export const getPrice = async (tickerSymbol: string): Promise<StockPrices> => {
   const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
   console.log("stock info for ", tickerSymbol, " is ", symbol);
-  if (!yesterday) {
-    let bid: string = symbol.response.bid.split(" x ")[0];
-    bid = bid.replace(",", "");
-    if (Number(bid) > 0 && Number(bid) != NaN) {
-      console.log("bid = ", bid, " and ", Number(bid));
-      return Number(bid);
-    }
-  }
-  return Number(symbol.response.previousClose);
+
+  const previousClose: number = symbol.response.previousClose
+
+  // bid
+  const bidString: string = symbol.response.bid
+    .split(" x ")[0]
+    .replace(",", "");
+  const bid: number =
+    Number(bidString) > 0 && Number(bidString) != NaN
+      ? Number(bidString)
+      : previousClose;
+
+  // ask
+  const askString: string = symbol.response.ask
+    .split(" x ")[0]
+    .replace(",", "");
+  const ask: number =
+    Number(askString) > 0 && Number(askString) != NaN
+      ? Number(askString)
+      : previousClose;
+
+  const prices: StockPrices = {
+    bid: bid,
+    ask: ask,
+    previousClose: previousClose
+  };
+
+  return prices;
 };
 
 export const isValidSymbol = async (tickerSymbol: string): Promise<boolean> => {
@@ -50,4 +68,5 @@ export const isValidSymbol = async (tickerSymbol: string): Promise<boolean> => {
   return true;
 };
 
-export const getTickerName = async (tickerSymbol:string):Promise<string> => await ticker.lookup(tickerSymbol)
+export const getTickerName = async (tickerSymbol: string): Promise<string> =>
+  await ticker.lookup(tickerSymbol);
