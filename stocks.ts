@@ -20,6 +20,11 @@ export async function checkFavoriteStock(tickerSymbol: string) {
 }
 
 export const getPrice = async (tickerSymbol: string): Promise<StockPrices> => {
+
+
+  //console.log(await ticker.searchTicker("MS"))
+
+
   const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
   console.log("stock info for ", tickerSymbol, " is ", symbol);
 
@@ -68,5 +73,8 @@ export const isValidSymbol = async (tickerSymbol: string): Promise<boolean> => {
   return true;
 };
 
-export const getTickerName = async (tickerSymbol: string): Promise<string> =>
-  await ticker.lookup(tickerSymbol);
+export const lookupTicker = async (tickerSymbol: string): Promise<string> => {
+  const tickerName:string = await ticker.lookup(tickerSymbol);
+  console.log ("TICKER LOOOKUP: ", tickerSymbol, "->", tickerName)
+  return tickerName
+}

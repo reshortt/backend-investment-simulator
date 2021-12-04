@@ -7,7 +7,7 @@ const router: express.Router = express.Router();
 
 router.post("/login", express.json(), async (req, res) => {
 
-  console.log(req.body);
+  //console.log(req.body);
   const foundUser = await mongo.login(req.body.userId, req.body.password)
 
   console.log("Logged in User: " + foundUser);
