@@ -1,9 +1,9 @@
 import express = require("express");
 import cors = require("cors");
 import { Document } from "mongodb";
-import { createUser, getAssets, getUserByEmail, getUserById, login, makeGift } from "./mongo";
+import { buyAsset, createUser, getAssets, getCash, getTransactions, getUserByEmail, getUserById, login, makeGift } from "./mongo";
 import { getPrice, lookupTicker, isValidSymbol } from "./stocks";
-import { Asset, Lot, StockPrices, UserInfo } from "./types";
+import { Asset, Lot, StockPrices, Transaction, UserInfo } from "./types";
 
 global.fetch = require("node-fetch");
 const jwt = require("jsonwebtoken");
@@ -125,7 +125,7 @@ router.get("/API/getUser", async (req, res) => {
     res.status(401).send("Invalid user id");
   } else {
     //console.log ("returned user: ", foundUser)
-    const user:UserInfo = {name:foundUser.name, email: foundUser.emai}
+    const user:UserInfo = {name:foundUser.name, email: foundUser.emai, cash: foundUser.cash}
     res.status(200).json(user);
   }
 });
@@ -172,27 +172,54 @@ router.get("/API/getAssets", async (req, res) => {
   res.status(200).json({assets:assetsArray})
 });
 
-// router.get("/API/getAssets", async (req, res) => {
+router.get("/API/getTransactions", async (req, res) => {
 
-//   //TODO: refactor from here...
-//   const token = req.headers.authorization.split(" ")[1];
-//   const payload = await jwt.verify(token, process.env.JWT_SECRET);
-//   const foundUser = await getUser(payload.userId);
-//   if (!foundUser) {
-//     res.status(401).send("Invalid user id");
-//     return;
-//   }
-//   //....n to here
+  //TODO: refactor from here...
+  const token = req.headers.authorization.split(" ")[1];
+  const payload = await jwt.verify(token, process.env.JWT_SECRET);
+  const foundUser = await getUserById(payload.userId);
+  if (!foundUser) {
+    res.status(401).send("Invalid user id");
+    return;
+  }
+  //....n to here
 
-//   // Promise.all waits for all promises in the passed in array to
-//   const assetsArray:Asset[] = await Promise.all(foundUser.positions.map(
-//     async (currentPosition) => {
-//       const currentSymbol:string = currentPosition.symbol
-//       const currentName:string = await lookupTicker(currentSymbol)
+  const transactionsArray:Transaction[] = await getTransactions(foundUser)
+  res.status(200).json({transactions:transactionsArray})
+});
 
-//       return {symbol:currentSymbol, name:currentName}
-//     }
-//   ));
+router.get("/API/getCash", async (req, res) => {
 
-//   res.status(200).json({assets:assetsArray})
-// });
+  //TODO: refactor from here...
+  const token = req.headers.authorization.split(" ")[1];
+  const payload = await jwt.verify(token, process.env.JWT_SECRET);
+  const user = await getUserById(payload.userId);
+  if (!user) {
+    res.status(401).send("Invalid user id");
+    return;
+  }
+  //....n to here
+
+  const cash:number = await getCash(user)
+  res.status(200).json({cash:cash})
+});
+
+router.get("/API/buyAsset", async (req, res) => {
+
+  //TODO: refactor from here...
+  const token = req.headers.authorization.split(" ")[1];
+  const payload = await jwt.verify(token, process.env.JWT_SECRET);
+  const user = await getUserById(payload.userId);
+  if (!user) {
+    res.status(401).send("Invalid user id");
+    return;
+  }
+  //....n to here
+
+  const tickerSymbol:string = req.query.tickerSymbol.toString()
+  const shares = Number(req.query.toString())
+  await buyAsset(user, tickerSymbol, shares)
+  const msg:string = "Asset purchased. New cash is " + await getCash(user)
+  console.log(msg)
+  res.status(200).send(msg);
+});
