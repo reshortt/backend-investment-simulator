@@ -2,7 +2,7 @@ import { MongoClient, ObjectId, Document } from "mongodb";
 import { getPrice, lookupTicker } from "./stocks";
 import {
   Asset,
-  commission,
+  COMMISSION,
   Lot,
   StockPrices,
   Transaction,
@@ -189,7 +189,7 @@ export const buyAsset = async (
   shares: number
 ) => {
   const sharePrice: number = (await getPrice(tickerSymbol)).ask;
-  const totalPrice: number = sharePrice * shares + commission;
+  const totalPrice: number = sharePrice * shares + COMMISSION;
   const transactions: Document = user.transactions;
   const position: Document = getPosition(user, tickerSymbol);
   await createLot(user, position, tickerSymbol, shares);
@@ -223,7 +223,7 @@ export const createLot = async (
       
       $push: {
         symbol: tickerSymbol,
-        lots: { shares:shares, basis:(stockPrices.ask * shares + commission)/shares},
+        lots: { shares:shares, basis:(stockPrices.ask * shares + COMMISSION)/shares},
       }
     }})
 };
