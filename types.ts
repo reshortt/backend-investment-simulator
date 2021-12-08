@@ -14,4 +14,4 @@ export enum TransactionType {
     "dividend"
 }
 
-export const COMMISSION:number = 15
+export const COMMISSION:number = 15.00
