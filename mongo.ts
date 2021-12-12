@@ -146,7 +146,7 @@ export const getAssets = async (user: Document): Promise<Asset[]> => {
     user.positions.map(async (currentPosition) => {
       const currentSymbol: string = currentPosition.symbol;
       const currentName: string = await lookupTicker(currentSymbol);
-      const lotArray: Lot[] = currentPosition.lots.map(async (currentLot) => {
+      const lotArray: Lot[] = currentPosition.lots.map((currentLot) => {
         const currentShares = currentLot.shares;
         const currentCost = currentLot.cost;
         return { shares: currentShares, cost: currentCost };
@@ -155,6 +155,7 @@ export const getAssets = async (user: Document): Promise<Asset[]> => {
     })
   );
 
+  console.log("Get Assets Called, returning: ", assetsArray)
   return assetsArray;
 };
 
