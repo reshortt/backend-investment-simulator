@@ -146,12 +146,13 @@ export const getAssets = async (user: Document): Promise<Asset[]> => {
     user.positions.map(async (currentPosition) => {
       const currentSymbol: string = currentPosition.symbol;
       const currentName: string = await lookupTicker(currentSymbol);
+      const currentPrice:StockPrices = await getPrice(currentSymbol)
       const lotArray: Lot[] = currentPosition.lots.map((currentLot) => {
         const currentShares = currentLot.shares;
-        const currentCost = currentLot.cost;
-        return { shares: currentShares, cost: currentCost };
+        const currentBasis = currentLot.basis;
+        return { shares: currentShares, basis: currentBasis };
       });
-      return { symbol: currentSymbol, name: currentName, lots: lotArray };
+      return { symbol: currentSymbol, name: currentName, price:currentPrice, lots: lotArray };
     })
   );
 
@@ -183,6 +184,31 @@ export const getTransactions = async (
 
   return transactionsArray;
 };
+
+// export const getPositions = async (
+//   foundUser: Document
+// ): Promise<Position[]> => {
+//   // Promise.all waits for all promises in the passed in array to
+//   const transactionsArray: Transaction[] = await Promise.all(
+//     foundUser.transactions.map(async (currentTransaction) => {
+//       const currentDate: Date = currentTransaction.date;
+//       const currentSymbol: string = currentTransaction.symbol;
+//       const currentType: TransactionType = currentTransaction.type;
+//       const currentAmount: number = currentTransaction.amount;
+//       const currentShares: number = currentTransaction.shares;
+
+//       return {
+//         symbol: currentSymbol,
+//         date: currentDate,
+//         type: currentType,
+//         amout: currentAmount,
+//         shares: currentShares,
+//       };
+//     })
+//   );
+
+//   return transactionsArray;
+// };
 
 export const buyAsset = async (
   user: Document,

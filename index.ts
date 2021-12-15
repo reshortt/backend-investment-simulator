@@ -132,6 +132,8 @@ router.get("/API/getUser", async (req, res) => {
     name: foundUser.name,
     email: foundUser.emai,
     cash: foundUser.cash,
+    transactions:  await getTransactions(foundUser),
+    assets: await getAssets(foundUser)
   };
   res.status(200).json(user);
 });
