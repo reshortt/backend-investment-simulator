@@ -13,7 +13,7 @@ import {
   makeGift,
 } from "./mongo";
 import { getPrice, lookupTicker, isValidSymbol } from "./stocks";
-import { Asset, Lot, StockPrices, Transaction, UserInfo } from "./types";
+import { Asset, Lot, StockPrices, Transaction, User } from "./types";
 
 global.fetch = require("node-fetch");
 const jwt = require("jsonwebtoken");
@@ -128,7 +128,7 @@ router.post("/signup", express.json(), async (req, res) => {
 router.get("/API/getUser", async (req, res) => {
   const foundUser = await verifyUser(req, res);
   if (!foundUser) return;
-  const user: UserInfo = {
+  const user: User = {
     name: foundUser.name,
     email: foundUser.emai,
     cash: foundUser.cash,
