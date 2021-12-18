@@ -13,7 +13,7 @@ import {
   makeGift,
 } from "./mongo";
 import { getPrice, lookupTicker, isValidSymbol } from "./stocks";
-import { Asset, Lot, StockPrices, Transaction, User } from "./types";
+import { Asset, StockPrices, Transaction, User } from "./types";
 
 global.fetch = require("node-fetch");
 const jwt = require("jsonwebtoken");

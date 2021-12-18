@@ -156,7 +156,7 @@ export const getAssets = async (user: Document): Promise<Asset[]> => {
     })
   );
 
-  console.log("Get Assets Called, returning: ", assetsArray)
+  //console.log("Get Assets Called, returning: ", assetsArray)
   return assetsArray;
 };
 
@@ -168,17 +168,25 @@ export const getTransactions = async (
     foundUser.transactions.map(async (currentTransaction) => {
       const currentDate: Date = currentTransaction.date;
       const currentSymbol: string = currentTransaction.symbol;
+      const currentName: string = await lookupTicker(currentSymbol);
       const currentType: TransactionType = currentTransaction.type;
       const currentAmount: number = currentTransaction.amount;
       const currentShares: number = currentTransaction.shares;
+      const currentCash:number = currentTransaction.cash;
+      console.log ("currentCash  ", currentCash, "-> " , currentTransaction.cash)
 
-      return {
+      const transaction =  {
         symbol: currentSymbol,
+        name: currentName,
         date: currentDate,
         type: currentType,
-        amout: currentAmount,
+        amount: currentAmount,
         shares: currentShares,
+        cash: currentCash,
       };
+
+      return transaction;
+      //transactionsArray.push(transaction)
     })
   );
 
@@ -201,7 +209,7 @@ export const getTransactions = async (
 //         symbol: currentSymbol,
 //         date: currentDate,
 //         type: currentType,
-//         amout: currentAmount,
+//         amount: currentAmount,
 //         shares: currentShares,
 //       };
 //     })

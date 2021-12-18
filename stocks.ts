@@ -1,4 +1,4 @@
-import { StockPrices } from "./types";
+import { HistoricalPrice, StockPrices } from "./types";
 
 const yahooStockAPI = require("yahoo-stock-api");
 const yahooHistory = require("yahoo-finance-history");
@@ -19,16 +19,38 @@ export async function checkFavoriteStock(tickerSymbol: string) {
   }
 }
 
+export const getHistoricalPrices = async (
+  tickerSymbol: string
+): Promise<HistoricalPrice[]> => {
+  const data = await yahooHistory.getPriceHistory(tickerSymbol);
+  const priceHistory = await data.priceHistory;
+  const priceHistoryRows: string[] = priceHistory.toString().split("\n");
+
+  const prices: HistoricalPrice[] = [];
+
+  //console.log("Number rows: ", priceHistoryRows.length);
+  for (var row = 1; row < priceHistoryRows.length; ++row) {
+    const rowString = priceHistoryRows[row];
+    //console.log(rowString);
+    const columns: string[] = rowString.split(",");
+    const price: HistoricalPrice = {
+      date: new Date(columns[0]),
+      price: Number(columns[3]),
+    };
+    prices.push(price);
+  }
+  return prices;
+};
+
 export const getPrice = async (tickerSymbol: string): Promise<StockPrices> => {
-
-
-  //console.log(await ticker.searchTicker("MS"))
-
-
   const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
-  console.log("stock info for ", tickerSymbol, " is ", symbol);
+  //console.log("stock info for ", tickerSymbol, " is ", symbol);
 
-  const previousClose: number = symbol.response.previousClose
+  const historicalPrices: HistoricalPrice[] = await getHistoricalPrices(
+    tickerSymbol
+  );
+
+  const previousClose: number = symbol.response.previousClosea;
 
   // bid
   const bidString: string = symbol.response.bid
@@ -51,10 +73,12 @@ export const getPrice = async (tickerSymbol: string): Promise<StockPrices> => {
   const prices: StockPrices = {
     bid: bid,
     ask: ask,
-    previousClose: previousClose
+    previousClose: previousClose,
+    historicalPrices: historicalPrices,
   };
 
-  return prices;
+  //console.log("Setting historical prices to: ", historicalPrices)
+  return prices
 };
 
 export const isValidSymbol = async (tickerSymbol: string): Promise<boolean> => {
@@ -74,7 +98,9 @@ export const isValidSymbol = async (tickerSymbol: string): Promise<boolean> => {
 };
 
 export const lookupTicker = async (tickerSymbol: string): Promise<string> => {
-  const tickerName:string = await ticker.lookup(tickerSymbol);
-  console.log ("TICKER LOOOKUP: ", tickerSymbol, "->", tickerName)
-  return tickerName
-}
+  if (!tickerSymbol)
+    return "";
+  const tickerName: string = await ticker.lookup(tickerSymbol);
+  //console.log("TICKER LOOOKUP: ", tickerSymbol, "->", tickerName);
+  return tickerName;
+};
