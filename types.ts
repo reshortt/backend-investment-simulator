@@ -1,9 +1,14 @@
 export type Asset = {
-  symbol: string;
-  name: string;
-  price: StockPrices;
+  stock: Stock;
   lots: Lot[];
-};
+}
+
+export type Stock = {
+  name: string;
+  symbol: string;
+  price: StockPrices;
+}
+
 export type StockPrices = {
   bid: number;
   ask: number;

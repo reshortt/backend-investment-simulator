@@ -78,7 +78,7 @@ router.get("/API/lookupTicker", async (req, res) => {
     symbol: tickerSymbol,
     name: companyName,
   });
-  res.status(200).send({ symbol: tickerSymbol, name: companyName });
+  res.status(200).send(companyName);
 });
 
 router.get("/API/getStockPrice", async (req, res) => {
@@ -210,10 +210,13 @@ router.get("/API/buyAsset", async (req, res) => {
   if (!foundUser) return;
 
   const tickerSymbol: string = req.query.tickerSymbol.toString();
-  const shares = Number(req.query.toString());
-  await buyAsset(foundUser, tickerSymbol, shares);
-  const msg: string =
-    "Asset purchased. New cash is " + (await getCash(foundUser));
-  console.log(msg);
-  res.status(200).send(msg);
+  const shares = Number(req.query.shares.toString());
+  const purchaseResult = await buyAsset(foundUser, tickerSymbol, shares);
+  if (purchaseResult) {
+    const msg: string = "Asset purchased. New cash is " + (await getCash(foundUser));
+    console.log(msg);
+    res.status(200).send(msg);
+  } else {
+    res.status(500).send("")
+  }
 });

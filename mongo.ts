@@ -6,7 +6,7 @@ import {
   Lot,
   StockPrices,
   Transaction,
-  TransactionType,
+  TransactionType
 } from "./types";
 
 const url: string = "mongodb://localhost:27017";
@@ -152,7 +152,7 @@ export const getAssets = async (user: Document): Promise<Asset[]> => {
         const currentBasis = currentLot.basis;
         return { shares: currentShares, basis: currentBasis };
       });
-      return { symbol: currentSymbol, name: currentName, price:currentPrice, lots: lotArray };
+      return { stock: { symbol: currentSymbol, name: currentName, price:currentPrice }, lots: lotArray };
     })
   );
 
@@ -223,21 +223,26 @@ export const buyAsset = async (
   tickerSymbol: string,
   shares: number
 ) => {
-  const sharePrice: number = (await getPrice(tickerSymbol)).ask;
-  const totalPrice: number = sharePrice * shares + COMMISSION;
-  const transactions: Document = user.transactions;
-  const position: Document = getPosition(user, tickerSymbol);
-  await createLot(user, position, tickerSymbol, shares);
+  try {
+    const sharePrice: number = (await getPrice(tickerSymbol)).ask;
+    const totalPrice: number = sharePrice * shares + COMMISSION;
+    const position: Document = getPosition(user, tickerSymbol);
+    await createLot(user, position, tickerSymbol, shares);
 
-  const cash = user.cash - totalPrice;
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
-  await collection.updateOne(user, {
-    $set: {
-      cash: cash,
-    },
-  });
+    const cash = user.cash - totalPrice;
+    await client.connect();
+    const db = client.db("investments");
+    const collection = db.collection("investors");
+    await collection.updateOne(user, {
+      $set: {
+        cash: cash,
+      },
+    });
+    return true
+  } catch (ex) {
+    console.error(ex)
+    return false
+  }
 };
 
 export const createLot = async (
@@ -252,42 +257,48 @@ export const createLot = async (
   const db = client.db("investments");
   const collection = db.collection("investors");
   // Find the user's position's element we need to update
-  collection.update
-  collection.updateOne(user,
-    {positions: {
-      
+
+  return collection.updateOne(user,
+    {
       $push: {
-        symbol: tickerSymbol,
-        lots: { shares:shares, basis:(stockPrices.ask * shares + COMMISSION)/shares},
+        'positions.$[p].lots': { shares: shares, basis: (stockPrices.ask * shares + COMMISSION) / shares}
       }
-    }})
+    },
+    {
+      arrayFilters: [{
+        'p.symbol': tickerSymbol
+      }]
+    }
+  )
 };
 
 // get or create a position
 export const getPosition = async (
   user: Document,
   tickerSymbol: string
-): Promise<Document> => {
-  const positions: Document[] = user.positions;
+): Promise<Asset> => {
+  const positions: Asset[] = user.positions;
 
-  let foundPosition: Document = null;
+  let foundPosition: Asset = null;
 
   positions.forEach((position) => {
-    if (position.symbol == tickerSymbol) {
+    if (position.stock?.symbol === tickerSymbol) {
       foundPosition = position;
     }
   });
 
   if (foundPosition != null) return foundPosition;
 
+  // Create a new position for the ticker symbol
   await client.connect();
   const db = client.db("investments");
   const collection = db.collection("investors");
 
+  const newPosition: Asset = { stock: { symbol: tickerSymbol, name: '', price: { bid: 0, ask: 0, previousClose: 0, historicalPrices: [] } }, lots: []}
   await collection.updateOne(user, {
     $push: {
-      positions: { symbol: tickerSymbol, lots: []},
+      positions: newPosition,
     }
   });
-  return getPosition(user, tickerSymbol);
+  return newPosition;
 };
