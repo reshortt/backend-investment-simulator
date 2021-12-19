@@ -210,7 +210,7 @@ router.get("/API/buyAsset", async (req, res) => {
   if (!foundUser) return;
 
   const tickerSymbol: string = req.query.tickerSymbol.toString();
-  const shares = Number(req.query.toString());
+  const shares = Number(req.query.shares.toString());
   const purchaseResult = await buyAsset(foundUser, tickerSymbol, shares);
   if (purchaseResult) {
     const msg: string = "Asset purchased. New cash is " + (await getCash(foundUser));

@@ -261,8 +261,13 @@ export const createLot = async (
   return collection.updateOne(user,
     {
       $push: {
-        'positions.$.lots': { shares: shares, basis: (stockPrices.ask * shares + COMMISSION) / shares}
+        'positions.$[p].lots': { shares: shares, basis: (stockPrices.ask * shares + COMMISSION) / shares}
       }
+    },
+    {
+      arrayFilters: [{
+        'p.symbol': tickerSymbol
+      }]
     }
   )
 };
@@ -277,7 +282,7 @@ export const getPosition = async (
   let foundPosition: Asset = null;
 
   positions.forEach((position) => {
-    if (position.stock.symbol == tickerSymbol) {
+    if (position.stock?.symbol === tickerSymbol) {
       foundPosition = position;
     }
   });
