@@ -81,6 +81,10 @@ router.get("/API/lookupTicker", async (req, res) => {
   res.status(200).send(companyName);
 });
 
+router.get("/API/getHistoricalPrices", async (req, res) => {
+  
+})
+
 router.get("/API/getStockPrice", async (req, res) => {
   //console.log(" Get Stock Price Called on ", req.query, " and req= ", req)
 
@@ -132,6 +136,7 @@ router.get("/API/getUser", async (req, res) => {
     name: foundUser.name,
     email: foundUser.emai,
     cash: foundUser.cash,
+    created: foundUser.created,
     transactions:  await getTransactions(foundUser),
     assets: await getAssets(foundUser)
   };

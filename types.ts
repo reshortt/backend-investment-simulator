@@ -20,6 +20,7 @@ export type User = {
   name: string;
   email: string;
   cash: number;
+  created: Date;
   transactions: Transaction[];
   assets: Asset[];
 };

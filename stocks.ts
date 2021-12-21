@@ -7,13 +7,15 @@ const ticker = require("stock-ticker-symbol");
 export const getHistoricalPrices = async (
   tickerSymbol: string
 ): Promise<HistoricalPrice[]> => {
+  const prices: HistoricalPrice[] = [];
+  if (true) return prices
+  
   console.log("Getting Price History of ", tickerSymbol)
   const data = await yahooHistory.getPriceHistory(tickerSymbol);
   const priceHistory = await data.priceHistory;
   const priceHistoryRows: string[] = priceHistory.toString().split("\n");
 
   console.log ("Price History for ", tickerSymbol, " ---->> \n", (priceHistoryRows && priceHistoryRows.length > 2) ?   (priceHistoryRows[0], priceHistoryRows[1]): "...nothing yet...")
-  const prices: HistoricalPrice[] = [];
 
   console.log("Number of rows in price history: ", priceHistoryRows.length);
   for (var row = 1; row < priceHistoryRows.length; ++row) {

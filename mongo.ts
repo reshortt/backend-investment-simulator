@@ -264,7 +264,7 @@ export const createLot = async (
   const collection = db.collection("investors");
   // Find the user's position's element we need to update
 
-  return collection.updateOne(user.positions,
+  return collection.updateOne(user,
     {
       $push: {
         'positions.$[p].lots': { shares: shares, basis: (price * shares + COMMISSION) / shares}
