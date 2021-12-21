@@ -221,13 +221,13 @@ export const getTransactions = async (
 export const buyAsset = async (
   user: Document,
   tickerSymbol: string,
-  shares: number
+  shares: number,
+  askPrice: number
 ) => {
   try {
-    const sharePrice: number = (await getPrice(tickerSymbol)).ask;
-    const totalPrice: number = sharePrice * shares + COMMISSION;
-    const position: Document = getPosition(user, tickerSymbol);
-    await createLot(user, position, tickerSymbol, shares);
+    const totalPrice: number = askPrice * shares + COMMISSION;
+    const position: Document = await getPositionsDocument(user, tickerSymbol);
+    await createLot(user, position, tickerSymbol, shares, askPrice);
 
     const cash = user.cash - totalPrice;
     await client.connect();
@@ -249,19 +249,18 @@ export const createLot = async (
   user: Document,
   position: Document,
   tickerSymbol: string,
-  shares: number
+  shares: number,
+  price: number
 ) => {
-  const stockPrices: StockPrices = await getPrice(tickerSymbol);
-
   await client.connect();
   const db = client.db("investments");
   const collection = db.collection("investors");
   // Find the user's position's element we need to update
 
-  return collection.updateOne(user,
+  return collection.updateOne(user.positions,
     {
       $push: {
-        'positions.$[p].lots': { shares: shares, basis: (stockPrices.ask * shares + COMMISSION) / shares}
+        'positions.$[p].lots': { shares: shares, basis: (price * shares + COMMISSION) / shares}
       }
     },
     {
@@ -273,7 +272,7 @@ export const createLot = async (
 };
 
 // get or create a position
-export const getPosition = async (
+export const getPositionsDocument = async (
   user: Document,
   tickerSymbol: string
 ): Promise<Asset> => {
@@ -294,11 +293,13 @@ export const getPosition = async (
   const db = client.db("investments");
   const collection = db.collection("investors");
 
-  const newPosition: Asset = { stock: { symbol: tickerSymbol, name: '', price: { bid: 0, ask: 0, previousClose: 0, historicalPrices: [] } }, lots: []}
+  const newPosition = {symbol: tickerSymbol, lots: []}
   await collection.updateOne(user, {
     $push: {
       positions: newPosition,
     }
   });
-  return newPosition;
+
+  // TODO: this could turn into infinite recursion if the push fails
+  return await getPositionsDocument(user, tickerSymbol)
 };

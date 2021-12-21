@@ -4,31 +4,18 @@ const yahooStockAPI = require("yahoo-stock-api");
 const yahooHistory = require("yahoo-finance-history");
 const ticker = require("stock-ticker-symbol");
 
-export async function checkFavoriteStock(tickerSymbol: string) {
-  const data = await yahooHistory.getPriceHistory(tickerSymbol);
-  console.log(await data.dividendHistory);
-
-  const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
-  console.log(symbol);
-  if (!symbol.error) {
-    //console.log(tickerSymbol + ": valid");
-    return true;
-  } else {
-    //console.log(tickerSymbol + ": invalid");
-    return false;
-  }
-}
-
 export const getHistoricalPrices = async (
   tickerSymbol: string
 ): Promise<HistoricalPrice[]> => {
+  console.log("Getting Price History of ", tickerSymbol)
   const data = await yahooHistory.getPriceHistory(tickerSymbol);
   const priceHistory = await data.priceHistory;
   const priceHistoryRows: string[] = priceHistory.toString().split("\n");
 
+  console.log ("Price History for ", tickerSymbol, " ---->> \n", (priceHistoryRows && priceHistoryRows.length > 2) ?   (priceHistoryRows[0], priceHistoryRows[1]): "...nothing yet...")
   const prices: HistoricalPrice[] = [];
 
-  //console.log("Number rows: ", priceHistoryRows.length);
+  console.log("Number of rows in price history: ", priceHistoryRows.length);
   for (var row = 1; row < priceHistoryRows.length; ++row) {
     const rowString = priceHistoryRows[row];
     //console.log(rowString);
@@ -42,18 +29,29 @@ export const getHistoricalPrices = async (
   return prices;
 };
 
-export const getPrice = async (tickerSymbol: string): Promise<StockPrices> => {
-  const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
-  //console.log("stock info for ", tickerSymbol, " is ", symbol);
+export const getPrice = async (tickerSymbol: string): Promise<StockPrices|undefined> => {
+  if (!tickerSymbol)
+    return undefined
+  const companyName = await yahooStockAPI.getSymbol(tickerSymbol);
+  //console.log("stock info for ", tickerSymbol, " is ", companyName);
+  if (!companyName) {
+    console.log("Company name is bad for ", tickerSymbol, " : ", companyName)
+    return undefined
+  }
 
   const historicalPrices: HistoricalPrice[] = await getHistoricalPrices(
     tickerSymbol
   );
 
-  const previousClose: number = symbol.response.previousClosea;
+  if (!historicalPrices) {
+    console.log("No historical prices for ", tickerSymbol, ":", historicalPrices)
+    return undefined
+  }
+
+  const previousClose: number = companyName.response.previousClosea;
 
   // bid
-  const bidString: string = symbol.response.bid
+  const bidString: string = companyName.response.bid
     .split(" x ")[0]
     .replace(",", "");
   const bid: number =
@@ -62,7 +60,7 @@ export const getPrice = async (tickerSymbol: string): Promise<StockPrices> => {
       : previousClose;
 
   // ask
-  const askString: string = symbol.response.ask
+  const askString: string = companyName.response.ask
     .split(" x ")[0]
     .replace(",", "");
   const ask: number =
