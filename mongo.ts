@@ -6,7 +6,7 @@ import {
   Lot,
   StockPrices,
   Transaction,
-  TransactionType
+  TransactionType,
 } from "./types";
 
 const url: string = "mongodb://localhost:27017";
@@ -146,13 +146,20 @@ export const getAssets = async (user: Document): Promise<Asset[]> => {
     user.positions.map(async (currentPosition) => {
       const currentSymbol: string = currentPosition.symbol;
       const currentName: string = await lookupTicker(currentSymbol);
-      const currentPrice:StockPrices = await getPrice(currentSymbol)
+      const currentPrice: StockPrices = await getPrice(currentSymbol);
       const lotArray: Lot[] = currentPosition.lots.map((currentLot) => {
         const currentShares = currentLot.shares;
         const currentBasis = currentLot.basis;
         return { shares: currentShares, basis: currentBasis };
       });
-      return { stock: { symbol: currentSymbol, name: currentName, price:currentPrice }, lots: lotArray };
+      return {
+        stock: {
+          symbol: currentSymbol,
+          name: currentName,
+          price: currentPrice,
+        },
+        lots: lotArray,
+      };
     })
   );
 
@@ -172,10 +179,10 @@ export const getTransactions = async (
       const currentType: TransactionType = currentTransaction.type;
       const currentAmount: number = currentTransaction.amount;
       const currentShares: number = currentTransaction.shares;
-      const currentCash:number = currentTransaction.cash;
-      console.log ("currentCash  ", currentCash, "-> " , currentTransaction.cash)
+      const currentCash: number = currentTransaction.cash;
+      console.log("currentCash  ", currentCash, "-> ", currentTransaction.cash);
 
-      const transaction =  {
+      const transaction = {
         symbol: currentSymbol,
         name: currentName,
         date: currentDate,
@@ -238,10 +245,10 @@ export const buyAsset = async (
         cash: cash,
       },
     });
-    return true
+    return true;
   } catch (ex) {
-    console.error(ex)
-    return false
+    console.error(ex);
+    return false;
   }
 };
 
@@ -275,13 +282,13 @@ export const createLot = async (
 export const getPositionsDocument = async (
   user: Document,
   tickerSymbol: string
-): Promise<Asset> => {
-  const positions: Asset[] = user.positions;
+): Promise<Document> => {
+  const positions: Document = user.positions;
 
-  let foundPosition: Asset = null;
+  let foundPosition: Document = null;
 
   positions.forEach((position) => {
-    if (position.stock?.symbol === tickerSymbol) {
+    if (position.symbol === tickerSymbol) {
       foundPosition = position;
     }
   });
@@ -293,13 +300,13 @@ export const getPositionsDocument = async (
   const db = client.db("investments");
   const collection = db.collection("investors");
 
-  const newPosition = {symbol: tickerSymbol, lots: []}
+  const newPosition = { symbol: tickerSymbol, lots: [] };
   await collection.updateOne(user, {
     $push: {
-      positions: newPosition,
-    }
+      "positions": newPosition
+    },
   });
 
   // TODO: this could turn into infinite recursion if the push fails
-  return await getPositionsDocument(user, tickerSymbol)
+  return await getPositionsDocument(user, tickerSymbol);
 };
