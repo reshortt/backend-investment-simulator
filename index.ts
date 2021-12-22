@@ -82,7 +82,7 @@ router.get("/API/lookupTicker", async (req, res) => {
 });
 
 router.get("/API/getHistoricalPrices", async (req, res) => {
-  
+
 })
 
 router.get("/API/getStockPrice", async (req, res) => {
@@ -214,7 +214,7 @@ router.get("/API/buyAsset", async (req, res) => {
   const foundUser = await verifyUser(req, res);
   if (!foundUser) return;
 
-  const tickerSymbol: string = req.query.tickerSymbol.toString();
+  const tickerSymbol: string = req.query.tickerSymbol.toString().toUpperCase();
   const shares = Number(req.query.shares.toString());
   const price = Number(req.query.price.toString())
   const purchaseResult = await buyAsset(foundUser, tickerSymbol, shares, price);
