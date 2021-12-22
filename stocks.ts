@@ -8,8 +8,7 @@ export const getHistoricalPrices = async (
   tickerSymbol: string
 ): Promise<HistoricalPrice[]> => {
   const prices: HistoricalPrice[] = [];
-  if (true) return prices
-  
+
   console.log("Getting Price History of ", tickerSymbol)
   const data = await yahooHistory.getPriceHistory(tickerSymbol);
   const priceHistory = await data.priceHistory;
@@ -34,26 +33,17 @@ export const getHistoricalPrices = async (
 export const getPrice = async (tickerSymbol: string): Promise<StockPrices|undefined> => {
   if (!tickerSymbol)
     return undefined
-  const companyName = await yahooStockAPI.getSymbol(tickerSymbol);
+  const stockInfo = await yahooStockAPI.getSymbol(tickerSymbol);
   //console.log("stock info for ", tickerSymbol, " is ", companyName);
-  if (!companyName) {
-    console.log("Company name is bad for ", tickerSymbol, " : ", companyName)
+  if (!stockInfo) {
+    console.log("No stock info for ", tickerSymbol, " : ", stockInfo)
     return undefined
   }
 
-  const historicalPrices: HistoricalPrice[] = await getHistoricalPrices(
-    tickerSymbol
-  );
-
-  if (!historicalPrices) {
-    console.log("No historical prices for ", tickerSymbol, ":", historicalPrices)
-    return undefined
-  }
-
-  const previousClose: number = companyName.response.previousClosea;
+  const previousClose: number = stockInfo.response.previousClose;
 
   // bid
-  const bidString: string = companyName.response.bid
+  const bidString: string = stockInfo.response.bid
     .split(" x ")[0]
     .replace(",", "");
   const bid: number =
@@ -62,7 +52,7 @@ export const getPrice = async (tickerSymbol: string): Promise<StockPrices|undefi
       : previousClose;
 
   // ask
-  const askString: string = companyName.response.ask
+  const askString: string = stockInfo.response.ask
     .split(" x ")[0]
     .replace(",", "");
   const ask: number =
@@ -74,10 +64,9 @@ export const getPrice = async (tickerSymbol: string): Promise<StockPrices|undefi
     bid: bid,
     ask: ask,
     previousClose: previousClose,
-    historicalPrices: historicalPrices,
   };
 
-  //console.log("Setting historical prices to: ", historicalPrices)
+  //console.log("Returning new StockPrices Object: ", JSON.stringify(prices))
   return prices
 };
 

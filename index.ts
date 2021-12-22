@@ -73,11 +73,6 @@ router.get("/API/lookupTicker", async (req, res) => {
   }
   const companyName: string = await lookupTicker(tickerSymbol);
 
-  // Sending ans Asset
-  console.log(" finishing /API/service lookup returning ", {
-    symbol: tickerSymbol,
-    name: companyName,
-  });
   res.status(200).send(companyName);
 });
 
@@ -92,7 +87,7 @@ router.get("/API/getStockPrice", async (req, res) => {
 
   const isValid: boolean = await isValidSymbol(tickerSymbol);
   if (!isValid) {
-    console.log(`Invalid Symbol: ${tickerSymbol} - returning 400`);
+    console.log(`Invalid Symbol sent to get stock price: ${tickerSymbol} - returning 400`);
     res.status(400).send(`Invalid Symbol: ${tickerSymbol}`);
     return;
   }
