@@ -225,6 +225,11 @@ export const getTransactions = async (
 //   return transactionsArray;
 // };
 
+type Position = {
+  symbol: string;
+  lots: Lot[]
+}
+
 export const buyAsset = async (
   user: Document,
   tickerSymbol: string,
@@ -233,8 +238,8 @@ export const buyAsset = async (
 ) => {
   try {
     const totalPrice: number = askPrice * shares + COMMISSION;
-    const position: Document = await getPositionsDocument(user, tickerSymbol);
-    await createLot(user, position, tickerSymbol, shares, askPrice);
+    const lot = { shares: shares, basis: (askPrice * shares + COMMISSION) / shares}
+    await createPosition(user, tickerSymbol, lot);
 
     const cash = user.cash - totalPrice;
     await client.connect();
@@ -252,12 +257,37 @@ export const buyAsset = async (
   }
 };
 
+// get or create a position
+export const createPosition = async (
+  user: Document,
+  tickerSymbol: string,
+  lot: Lot
+) => {
+  const positions: Position[] = user.positions;
+
+  positions.forEach((position) => {
+    if (position.symbol.toUpperCase() === tickerSymbol.toUpperCase()) {
+      return createLot(user, lot, tickerSymbol)
+    }
+  });
+
+  // Create a new position for the ticker symbol
+  await client.connect();
+  const db = client.db("investments");
+  const collection = db.collection("investors");
+
+  const newPosition = { symbol: tickerSymbol, lots: [lot] };
+  await collection.updateOne(user, {
+    $push: {
+      "positions": newPosition
+    },
+  });
+};
+
 export const createLot = async (
   user: Document,
-  position: Document,
-  tickerSymbol: string,
-  shares: number,
-  price: number
+  lot: Lot,
+  tickerSymbol: string
 ) => {
   await client.connect();
   const db = client.db("investments");
@@ -267,46 +297,13 @@ export const createLot = async (
   return collection.updateOne(user,
     {
       $push: {
-        'positions.$[p].lots': { shares: shares, basis: (price * shares + COMMISSION) / shares}
+        'positions.$[p].lots': lot
       }
     },
     {
       arrayFilters: [{
-        'p.symbol': tickerSymbol
+        'p.symbol': tickerSymbol.toUpperCase()
       }]
     }
   )
-};
-
-// get or create a position
-export const getPositionsDocument = async (
-  user: Document,
-  tickerSymbol: string
-): Promise<Document> => {
-  const positions: Document = user.positions;
-
-  let foundPosition: Document = null;
-
-  positions.forEach((position) => {
-    if (position.symbol === tickerSymbol) {
-      foundPosition = position;
-    }
-  });
-
-  if (foundPosition != null) return foundPosition;
-
-  // Create a new position for the ticker symbol
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
-
-  const newPosition = { symbol: tickerSymbol, lots: [] };
-  await collection.updateOne(user, {
-    $push: {
-      "positions": newPosition
-    },
-  });
-
-  // TODO: this could turn into infinite recursion if the push fails
-  return await getPositionsDocument(user, tickerSymbol);
 };
