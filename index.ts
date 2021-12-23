@@ -13,7 +13,7 @@ import {
   makeGift,
 } from "./mongo";
 import { getPrice, lookupTicker, isValidSymbol } from "./stocks";
-import { Asset, StockPrices, Transaction, User } from "./types";
+import { Asset, StockPrices, Transaction, User, UserInfo } from "./types";
 
 global.fetch = require("node-fetch");
 const jwt = require("jsonwebtoken");
@@ -76,9 +76,7 @@ router.get("/API/lookupTicker", async (req, res) => {
   res.status(200).send(companyName);
 });
 
-router.get("/API/getHistoricalPrices", async (req, res) => {
-
-})
+router.get("/API/getHistoricalPrices", async (req, res) => {});
 
 router.get("/API/getStockPrice", async (req, res) => {
   //console.log(" Get Stock Price Called on ", req.query, " and req= ", req)
@@ -87,7 +85,9 @@ router.get("/API/getStockPrice", async (req, res) => {
 
   const isValid: boolean = await isValidSymbol(tickerSymbol);
   if (!isValid) {
-    console.log(`Invalid Symbol sent to get stock price: ${tickerSymbol} - returning 400`);
+    console.log(
+      `Invalid Symbol sent to get stock price: ${tickerSymbol} - returning 400`
+    );
     res.status(400).send(`Invalid Symbol: ${tickerSymbol}`);
     return;
   }
@@ -124,16 +124,30 @@ router.post("/signup", express.json(), async (req, res) => {
   return;
 });
 
-router.get("/API/getUser", async (req, res) => {
+router.get("/API/getUserInfo", async (req, res) => {
   const foundUser = await verifyUser(req, res);
   if (!foundUser) return;
-  const user: User = {
+  const userInfo: UserInfo = {
     name: foundUser.name,
     email: foundUser.emai,
     cash: foundUser.cash,
     created: foundUser.created,
-    transactions:  await getTransactions(foundUser),
-    assets: await getAssets(foundUser)
+  };
+  res.status(200).json(userInfo);
+});
+
+router.get("/API/getUser", async (req, res) => {
+  const foundUser = await verifyUser(req, res);
+  if (!foundUser) return;
+  const user: User = {
+    info: {
+      name: foundUser.name,
+      email: foundUser.emai,
+      cash: foundUser.cash,
+      created: foundUser.created,
+    },
+    transactions: await getTransactions(foundUser),
+    assets: await getAssets(foundUser),
   };
   res.status(200).json(user);
 });
@@ -193,7 +207,7 @@ router.get("/API/getTransactions", async (req, res) => {
   res.status(200).json({ transactions: transactionsArray });
 });
 
-router.get("API/getPositions")
+router.get("API/getPositions");
 
 router.get("/API/getCash", async (req, res) => {
   const foundUser = await verifyUser(req, res);
@@ -211,13 +225,14 @@ router.get("/API/buyAsset", async (req, res) => {
 
   const tickerSymbol: string = req.query.tickerSymbol.toString().toUpperCase();
   const shares = Number(req.query.shares.toString());
-  const price = Number(req.query.price.toString())
+  const price = Number(req.query.price.toString());
   const purchaseResult = await buyAsset(foundUser, tickerSymbol, shares, price);
   if (purchaseResult) {
-    const msg: string = "Asset purchased. New cash is " + (await getCash(foundUser));
+    const msg: string =
+      "Asset purchased. New cash is " + (await getCash(foundUser));
     console.log(msg);
     res.status(200).send(msg);
   } else {
-    res.status(500).send("")
+    res.status(500).send("");
   }
 });

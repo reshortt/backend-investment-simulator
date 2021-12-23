@@ -14,13 +14,16 @@ export type StockPrices = {
   ask: number;
   previousClose: number;
 };
-
 export type HistoricalPrice = { date: Date; price: number };
-export type User = {
+
+export type UserInfo = {
   name: string;
   email: string;
   cash: number;
   created: Date;
+}
+export type User = {
+  info:UserInfo;
   transactions: Transaction[];
   assets: Asset[];
 };
