@@ -65,7 +65,7 @@ router.get("/API/lookupTicker", async (req, res) => {
 
   const tickerSymbol = req.query.tickerSymbol.toString();
 
-  const isValid: boolean = await isValidSymbol(tickerSymbol);
+  const isValid: boolean = tickerSymbol && await isValidSymbol(tickerSymbol);
   if (!isValid) {
     console.log(`Invalid Symbol: ${tickerSymbol} - returning 400`);
     res.status(400).send(`Invalid Symbol: ${tickerSymbol}`);
@@ -108,7 +108,7 @@ router.post("/signup", express.json(), async (req, res) => {
     return;
   }
 
-  if (getUserByEmail(email)) {
+  if (await getUserByEmail(email)) {
     res.status(400);
     res.json({
       message: "email already exists",
@@ -116,7 +116,7 @@ router.post("/signup", express.json(), async (req, res) => {
     return;
   }
 
-  const user = createUser(email, name, password);
+  const user = await createUser(email, name, password);
   makeGift(user, 1000000);
 
   res.status(200);
@@ -207,8 +207,6 @@ router.get("/API/getTransactions", async (req, res) => {
   res.status(200).json({ transactions: transactionsArray });
 });
 
-router.get("API/getPositions");
-
 router.get("/API/getCash", async (req, res) => {
   const foundUser = await verifyUser(req, res);
   if (!foundUser) return;
@@ -216,8 +214,6 @@ router.get("/API/getCash", async (req, res) => {
   const cash: number = await getCash(foundUser);
   res.status(200).json({ cash: cash });
 });
-
-router.get("API/getPositions");
 
 router.get("/API/buyAsset", async (req, res) => {
   const foundUser = await verifyUser(req, res);
@@ -228,11 +224,28 @@ router.get("/API/buyAsset", async (req, res) => {
   const price = Number(req.query.price.toString());
   const purchaseResult = await buyAsset(foundUser, tickerSymbol, shares, price);
   if (purchaseResult) {
-    const msg: string =
-      "Asset purchased. New cash is " + (await getCash(foundUser));
-    console.log(msg);
-    res.status(200).send(msg);
+
+    // for now, return the cash
+    res.status(200).send(await (getCash(foundUser)));
   } else {
     res.status(500).send("");
   }
 });
+
+// router.get("/API/sellAsset", async (req, res) => {
+//   const foundUser = await verifyUser(req, res);
+//   if (!foundUser) return;
+
+//   const tickerSymbol: string = req.query.tickerSymbol.toString().toUpperCase();
+//   const shares = Number(req.query.shares.toString());
+//   const price = Number(req.query.price.toString());
+//   const saleResult = await sellAsset(foundUser, tickerSymbol, shares, price);
+//   if (saleResult) {
+//     const msg: string =
+//       "Asset sold. New cash is " + (await getCash(foundUser));
+//     console.log(msg);
+//     res.status(200).send(msg);
+//   } else {
+//     res.status(500).send("");
+//   }
+// });

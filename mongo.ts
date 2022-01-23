@@ -1,4 +1,10 @@
-import { MongoClient, ObjectId, Document, UpdateResult, Collection } from "mongodb";
+import {
+  MongoClient,
+  ObjectId,
+  Document,
+  UpdateResult,
+  Collection,
+} from "mongodb";
 import { getPrice, lookupTicker } from "./stocks";
 import {
   Asset,
@@ -16,7 +22,7 @@ const getInvestorsCollection = async () => {
   await client.connect();
   const db = client.db("investments");
   return db.collection("investors");
-}
+};
 
 export const login = async (
   email: string,
@@ -124,21 +130,25 @@ export const makeGift = async (user: Document, amount: number) => {
   await client.connect();
   const db = client.db("investments");
   const collection = db.collection("investors");
-  await collection.updateOne(user, {
+  await collection.updateOne(
+    {_id: user._id}, {
     $push: {
       transactions: {
         date: new Date(),
         type: TransactionType.GIFT,
         amount: amount,
+        cash: amount,
       },
     },
   });
 
-  // await collection.updateOne(user, {
-  //   $set: {
-  //     cash: amount,
-  //   },
-  // });
+   await collection.updateOne(
+     {_id: user._id}, 
+     {
+     $set: {
+       cash: amount
+     },
+ });
 };
 
 // export const makePurchase = async (user:Document,  asset:Asset,
@@ -147,13 +157,13 @@ export const makeGift = async (user: Document, amount: number) => {
 // }
 
 export const getCash = async (user: Document): Promise<number> => {
-  return user.cash;
+  return (await getUserById(user._id)).cash
 };
 
 export const getAssets = async (user: Document): Promise<Asset[]> => {
   // Promise.all waits for all promises in the passed in array to
   const assetsArray: Asset[] = await Promise.all(
-    user.positions.map(async (currentPosition) => {
+    user.positions.map(async (currentPosition: Position) => {
       const currentSymbol: string = currentPosition.symbol;
       const currentName: string = await lookupTicker(currentSymbol);
       const currentPrice: StockPrices = await getPrice(currentSymbol);
@@ -182,13 +192,14 @@ export const getTransactions = async (
 ): Promise<Transaction[]> => {
   // Promise.all waits for all promises in the passed in array to
   const transactionsArray: Transaction[] = await Promise.all(
-    foundUser.transactions.map(async (currentTransaction) => {
+    foundUser.transactions.map(async (currentTransaction: Transaction) => {
       const currentDate: Date = currentTransaction.date;
       const currentSymbol: string = currentTransaction.symbol;
       const currentName: string = await lookupTicker(currentSymbol);
       const currentType: TransactionType = currentTransaction.type;
       const currentAmount: number = currentTransaction.amount;
       const currentShares: number = currentTransaction.shares;
+      const currentCash: number = currentTransaction.cash;
 
       const transaction = {
         symbol: currentSymbol,
@@ -197,6 +208,7 @@ export const getTransactions = async (
         type: currentType,
         amount: currentAmount,
         shares: currentShares,
+        cash: currentCash,
       };
 
       return transaction;
@@ -248,24 +260,28 @@ export const buyAsset = async (
     const lot = { shares: shares, basis: totalPrice / shares };
     await createPosition(user, tickerSymbol, lot);
 
-    await createTransaction(
-      user,
-      TransactionType.BUY,
-      tickerSymbol,
-      shares,
-      totalPrice
-    );
-
     const cash = user.cash - totalPrice;
     await client.connect();
     const db = client.db("investments");
     const collection = db.collection("investors");
     console.log("Decreasing cash from ", user.cash, " to ", cash);
-    await collection.updateOne(user, {
-      $set: {
-        cash: cash,
-      },
-    });
+    await createTransaction(
+      user,
+      TransactionType.BUY,
+      tickerSymbol,
+      shares,
+      totalPrice,
+      cash
+    );
+
+    await collection.updateOne(
+      { email: user.email },
+      {
+        $set: {
+          cash: cash
+        },
+      }
+    );
     return true;
   } catch (ex) {
     console.error(ex);
@@ -273,13 +289,55 @@ export const buyAsset = async (
   }
 };
 
+export const sellAsset = async (
+  user: Document,
+  tickerSymbol: string,
+  shares: number,
+  bidPrice: number
+) => {
+  try {
+    const totalPrice: number = bidPrice * shares + COMMISSION;
+    const lot = { shares: shares, basis: totalPrice / shares };
+    await createPosition(user, tickerSymbol, lot);
+
+    const cash = user.cash - totalPrice;
+    await client.connect();
+    const db = client.db("investments");
+    const collection = db.collection("investors");
+    console.log("Decreasing cash from ", user.cash, " to ", cash);
+    await createTransaction(
+      user,
+      TransactionType.BUY,
+      tickerSymbol,
+      shares,
+      totalPrice,
+      cash
+    );
+
+    await collection.updateOne(
+      { email: user.email },
+      {
+        $set: {
+          cash: cash
+        },
+      }
+    );
+    return true;
+  } catch (ex) {
+    console.error(ex);
+    return false;
+  }
+};
+
+
 // create a transaction
 export const createTransaction = async (
   user: Document,
   type: TransactionType,
   tickerSymbol: string,
   shares: number,
-  amount: number
+  amount: number,
+  cash: number
 ) => {
   await client.connect();
   const db = client.db("investments");
@@ -295,11 +353,32 @@ export const createTransaction = async (
           amount: amount,
           shares: shares,
           symbol: tickerSymbol,
+          cash: cash,
         },
       },
     }
   );
 };
+
+// export const sellPosition = async (
+//   user:Document,
+//   tickerSymbol: string,
+//   sharesToSell: number
+// ) => {
+//   const positions: Position[] = user.positions;
+
+//   var remaining:number = sharesToSell
+//   positions.forEach((position) => {
+//     if (remaining === 0) break
+
+//     if (position.symbol.toUpperCase() === tickerSymbol.toUpperCase()) {
+//       position.lots.forEach((lot) => {
+//         if (lot.shares > remaining)
+//           lot.shares 
+//       })
+//     }
+//   })
+// }
 
 // get or create a position
 export const createPosition = async (
@@ -313,7 +392,7 @@ export const createPosition = async (
     if (position.symbol.toUpperCase() === tickerSymbol.toUpperCase()) {
       return createLot(user, lot, tickerSymbol);
     }
-  });
+  })
 
   // Create a new position for the ticker symbol
   await client.connect();
@@ -329,7 +408,7 @@ export const createPosition = async (
   });
 
   console.log("Result of adding position in ", tickerSymbol, ": ", result);
-};
+}
 
 export const createLot = async (
   user: Document,

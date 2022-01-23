@@ -27,6 +27,7 @@ export type User = {
   transactions: Transaction[];
   assets: Asset[];
 };
+
 export type Lot = { shares: number; basis: number };
 export type Transaction = {
   date: Date;
@@ -35,6 +36,7 @@ export type Transaction = {
   symbol: string;
   shares: number;
   name:string;
+  cash:number;
 };
 
 export enum TransactionType {
