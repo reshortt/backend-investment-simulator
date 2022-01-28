@@ -81,6 +81,10 @@ export const login = async (
 //   }
 // });
 
+// const getCollection = ():Collection<Document> => {
+
+// }
+
 export const getUserById = async (userId: string): Promise<Document> => {
   await client.connect();
   const db = client.db("investments");
@@ -296,23 +300,23 @@ export const sellAsset = async (
   bidPrice: number
 ) => {
   try {
-    const totalPrice: number = bidPrice * shares + COMMISSION;
-    const lot = { shares: shares, basis: totalPrice / shares };
-    await createPosition(user, tickerSymbol, lot);
+    const totalProceeds: number = bidPrice * shares - COMMISSION;
 
-    const cash = user.cash - totalPrice;
+
+    const cash = user.cash + totalProceeds;
     await client.connect();
     const db = client.db("investments");
     const collection = db.collection("investors");
     console.log("Decreasing cash from ", user.cash, " to ", cash);
     await createTransaction(
       user,
-      TransactionType.BUY,
+      TransactionType.SELL,
       tickerSymbol,
       shares,
-      totalPrice,
+      totalProceeds,
       cash
     );
+
 
     await collection.updateOne(
       { email: user.email },
@@ -360,25 +364,50 @@ export const createTransaction = async (
   );
 };
 
-// export const sellPosition = async (
-//   user:Document,
-//   tickerSymbol: string,
-//   sharesToSell: number
-// ) => {
-//   const positions: Position[] = user.positions;
+const setLotCount = async (user:Document, positionID:number, lotID: number, shares:number) => {
+ 
+  await client.connect();
+  const db = client.db("investments");
+  const collection = db.collection("investors");
+  await collection.updateOne(
+    { id: user._id },
+    {
+      $set: {
+        "positions.$[positionID].lots.$[lotID]": shares
+      },
+    }
+  );
+}
 
-//   var remaining:number = sharesToSell
-//   positions.forEach((position) => {
-//     if (remaining === 0) break
+export const sellPosition = async (
+  user:Document,
+  tickerSymbol: string,
+  sharesToSell: number
+) => {
+  const positions = user.positions;
 
-//     if (position.symbol.toUpperCase() === tickerSymbol.toUpperCase()) {
-//       position.lots.forEach((lot) => {
-//         if (lot.shares > remaining)
-//           lot.shares 
-//       })
-//     }
-//   })
-// }
+  var remaining:number = sharesToSell
+  var positionID:number =0, lotID:number=0
+  positions.forEach((position: { symbol: string; lots: any[]; }) => {
+      if (position.symbol.toUpperCase() === tickerSymbol.toUpperCase()) {
+        position.lots.forEach((lot) => {
+          if (remaining >= 0) {
+            if (lot.shares > remaining) {
+               remaining = 0;
+               setLotCount (user, positionID, lotID, lot.shares - remaining) 
+            }
+            else {
+               remaining -= lot.shares
+               setLotCount(user, positionID, lotID, 0)
+            }
+          }
+         
+          ++lotID
+        })
+      }
+      ++positionID
+  })
+}
 
 // get or create a position
 export const createPosition = async (
@@ -421,7 +450,7 @@ export const createLot = async (
   // Find the user's position's element we need to update
 
   return collection.updateOne(
-    user,
+    {_id: user._id},
     {
       $push: {
         "positions.$[p].lots": lot,
