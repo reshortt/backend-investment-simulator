@@ -11,6 +11,7 @@ import {
   getUserById,
   login,
   makeGift,
+  sellAsset,
 } from "./mongo";
 import { getPrice, lookupTicker, isValidSymbol } from "./stocks";
 import { Asset, StockPrices, Transaction, User, UserInfo } from "./types";
@@ -65,7 +66,7 @@ router.get("/API/lookupTicker", async (req, res) => {
 
   const tickerSymbol = req.query.tickerSymbol.toString();
 
-  const isValid: boolean = tickerSymbol && await isValidSymbol(tickerSymbol);
+  const isValid: boolean = tickerSymbol && (await isValidSymbol(tickerSymbol));
   if (!isValid) {
     console.log(`Invalid Symbol: ${tickerSymbol} - returning 400`);
     res.status(400).send(`Invalid Symbol: ${tickerSymbol}`);
@@ -235,20 +236,19 @@ router.get("/API/buyAsset", async (req, res) => {
   }
 });
 
-// router.get("/API/sellAsset", async (req, res) => {
-//   const foundUser = await verifyUser(req, res);
-//   if (!foundUser) return;
+router.get("/API/sellAsset", async (req, res) => {
+  const foundUser = await verifyUser(req, res);
+  if (!foundUser) return;
 
-//   const tickerSymbol: string = req.query.tickerSymbol.toString().toUpperCase();
-//   const shares = Number(req.query.shares.toString());
-//   const price = Number(req.query.price.toString());
-//   const saleResult = await sellAsset(foundUser, tickerSymbol, shares, price);
-//   if (saleResult) {
-//     const msg: string =
-//       "Asset sold. New cash is " + (await getCash(foundUser));
-//     console.log(msg);
-//     res.status(200).send(msg);
-//   } else {
-//     res.status(500).send("");
-//   }
-// });
+  const tickerSymbol: string = req.query.tickerSymbol.toString().toUpperCase();
+  const shares = Number(req.query.shares.toString());
+  const price = Number(req.query.price.toString());
+  const saleResult = await sellAsset(foundUser, tickerSymbol, shares, price);
+  if (saleResult) {
+    res.status(200).json({
+      cash: await getCash(foundUser),
+    });
+  } else {
+    res.status(500).send("");
+  }
+});
