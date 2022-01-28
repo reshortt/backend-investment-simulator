@@ -15,7 +15,7 @@ import {
   TransactionType,
 } from "./types";
 
-const url: string = "mongodb://localhost:27017";
+const url = "mongodb://localhost:27017";
 const client: MongoClient = new MongoClient(url);
 
 const getInvestorsCollection = async () => {
@@ -389,60 +389,43 @@ export const sellPosition = async (
   sharesToSell: number
 ) => {
   const positions = user.positions;
-  const lotsByTicker: LotType[] = positions.filter((position:PositionType)=>{ return position.symbol.toUpperCase() === tickerSymbol.toUpperCase()})[0].lots
-  let remaining: number = sharesToSell
-  let positionID: number = 0
-  let lotID: number = 0
+  // Find the specific position from a ticker, grab the lots, and reverse them.
+  const reversedLotsByTicker: LotType[] = positions.filter((position:PositionType)=>{ return position.symbol.toUpperCase() === tickerSymbol.toUpperCase()})[0].lots.reverse();
 
   const validateSale = (lots:LotType[], amountToAttemptToSell): boolean =>{
     const totalAvailableSharesToSell:number = lots.reduce((prevLot, nextLot)=>{return prevLot + nextLot.shares},0)
     return totalAvailableSharesToSell >= amountToAttemptToSell;
   }
 
-  if(validateSale(lotsByTicker, sharesToSell)){
-    console.log(`Sale is valid, you have ${lotsByTicker} lots`)
+  if(validateSale(reversedLotsByTicker, sharesToSell)){
+    console.log(`Sale is valid, you have ${reversedLotsByTicker} lots`)
     console.log("Proceeding to sale...")
   } else {
-    console.log(`Sale is invalid!, you have ${lotsByTicker} lots`)
+    console.log(`Sale is invalid!, you have ${reversedLotsByTicker} lots`)
   }
   let saleQuota: number = sharesToSell;
-  const newLots: LotType[] = []
-  while(saleQuota !== 0){
-    const someSoldLot = lotsByTicker.pop();
+  while(saleQuota !== 0) {
+    const someSoldLot = reversedLotsByTicker.pop();
     console.log(`Selling lot... {shares: ${someSoldLot.shares} basis: ${someSoldLot.basis}}`)
     const proposedSharesToBeSold = someSoldLot.shares
     if(proposedSharesToBeSold >= saleQuota) {
+      // We just sold off the remaining shares with this lot.
       const remainder = proposedSharesToBeSold - saleQuota
-      newLots.push({ shares: remainder, basis: someSoldLot.basis })
+      if(remainder > 0) {
+        // If we sold the exact amount, don't push a lot with zero shares.
+        reversedLotsByTicker.push({shares: remainder, basis: someSoldLot.basis})
+      }
+      // Set the saleQuota to 0 to break the while loop.
       saleQuota = 0;
     } else {
       saleQuota = saleQuota - proposedSharesToBeSold;
     }
   }
 
-  console.log(`You have the following remaining lots:`)
-  console.log(lotsByTicker)
-/*  const lotsToBeSold: LotType[] = LotsB
-  const remaininglotsAfterSale: LotType[] = LotsByTicker.forEach
-  positions.forEach((position: { symbol: string; lots: LotType[]; }) => {
-      if (position.symbol.toUpperCase() === tickerSymbol.toUpperCase()) {
-        position.lots.forEach((lot) => {
-          if (remaining >= 0) {
-            if (lot.shares > remaining) {
-               remaining = 0;
-               setLotCount (user, positionID, lotID, lot.shares - remaining) 
-            }
-            else {
-               remaining -= lot.shares
-               setLotCount(user, positionID, lotID, 0)
-            }
-          }
-         
-          ++lotID
-        })
-      }
-      ++positionID
-  })*/
+  const newLotsInOriginalOrder = reversedLotsByTicker.reverse();
+
+  //TODO Update mongo with newLotsInOriginalOrder
+
 }
 
 // get or create a position
