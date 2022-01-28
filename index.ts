@@ -225,8 +225,12 @@ router.get("/API/buyAsset", async (req, res) => {
   const price = Number(req.query.price.toString());
   const purchaseResult = await buyAsset(foundUser, tickerSymbol, shares, price);
   if (purchaseResult) {
-    // for now, return the cash
-    res.status(200).json({ cash: await getCash(foundUser) });
+    getCash(foundUser).then((cash)=>{
+      res.status(200).send({cash});
+    },(rejection)=>{
+      res.status(500).send({rejected: rejection})
+    }
+    )
   } else {
     res.status(500).send("");
   }
