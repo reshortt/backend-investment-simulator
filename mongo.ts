@@ -301,7 +301,9 @@ export const sellAsset = async (
 ) => {
   try {
     const totalProceeds: number = bidPrice * shares - COMMISSION;
-
+    const positionSaleResponse = sellPosition(user,tickerSymbol,shares).then((cashGained=>{
+      //TODO
+    }));
 
     const cash = user.cash + totalProceeds;
     await client.connect();
@@ -379,16 +381,50 @@ const setLotCount = async (user:Document, positionID:number, lotID: number, shar
   );
 }
 
+export type LotType = {shares:number, basis:number}
+export type PositionType = {symbol:string, lots:LotType[]}
 export const sellPosition = async (
   user:Document,
   tickerSymbol: string,
   sharesToSell: number
 ) => {
   const positions = user.positions;
+  const lotsByTicker: LotType[] = positions.filter((position:PositionType)=>{ return position.symbol.toUpperCase() === tickerSymbol.toUpperCase()})[0].lots
+  let remaining: number = sharesToSell
+  let positionID: number = 0
+  let lotID: number = 0
 
-  var remaining:number = sharesToSell
-  var positionID:number =0, lotID:number=0
-  positions.forEach((position: { symbol: string; lots: any[]; }) => {
+  const validateSale = (lots:LotType[], amountToAttemptToSell): boolean =>{
+    const totalAvailableSharesToSell:number = lots.reduce((prevLot, nextLot)=>{return prevLot + nextLot.shares},0)
+    return totalAvailableSharesToSell >= amountToAttemptToSell;
+  }
+
+  if(validateSale(lotsByTicker, sharesToSell)){
+    console.log(`Sale is valid, you have ${lotsByTicker} lots`)
+    console.log("Proceeding to sale...")
+  } else {
+    console.log(`Sale is invalid!, you have ${lotsByTicker} lots`)
+  }
+  let saleQuota: number = sharesToSell;
+  const newLots: LotType[] = []
+  while(saleQuota !== 0){
+    const someSoldLot = lotsByTicker.pop();
+    console.log(`Selling lot... {shares: ${someSoldLot.shares} basis: ${someSoldLot.basis}}`)
+    const proposedSharesToBeSold = someSoldLot.shares
+    if(proposedSharesToBeSold >= saleQuota) {
+      const remainder = proposedSharesToBeSold - saleQuota
+      newLots.push({ shares: remainder, basis: someSoldLot.basis })
+      saleQuota = 0;
+    } else {
+      saleQuota = saleQuota - proposedSharesToBeSold;
+    }
+  }
+
+  console.log(`You have the following remaining lots:`)
+  console.log(lotsByTicker)
+/*  const lotsToBeSold: LotType[] = LotsB
+  const remaininglotsAfterSale: LotType[] = LotsByTicker.forEach
+  positions.forEach((position: { symbol: string; lots: LotType[]; }) => {
       if (position.symbol.toUpperCase() === tickerSymbol.toUpperCase()) {
         position.lots.forEach((lot) => {
           if (remaining >= 0) {
@@ -406,7 +442,7 @@ export const sellPosition = async (
         })
       }
       ++positionID
-  })
+  })*/
 }
 
 // get or create a position
