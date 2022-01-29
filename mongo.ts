@@ -18,7 +18,7 @@ import {
 const url = "mongodb://localhost:27017";
 const client: MongoClient = new MongoClient(url);
 
-const getInvestorsCollection = async () => {
+const getInvestors = async () => {
   await client.connect();
   const db = client.db("investments");
   return db.collection("investors");
@@ -135,24 +135,27 @@ export const makeGift = async (user: Document, amount: number) => {
   const db = client.db("investments");
   const collection = db.collection("investors");
   await collection.updateOne(
-    {_id: user._id}, {
-    $push: {
-      transactions: {
-        date: new Date(),
-        type: TransactionType.GIFT,
-        amount: amount,
+    { _id: user._id },
+    {
+      $push: {
+        transactions: {
+          date: new Date(),
+          type: TransactionType.GIFT,
+          amount: amount,
+          cash: amount,
+        },
+      },
+    }
+  );
+
+  await collection.updateOne(
+    { _id: user._id },
+    {
+      $set: {
         cash: amount,
       },
-    },
-  });
-
-   await collection.updateOne(
-     {_id: user._id}, 
-     {
-     $set: {
-       cash: amount
-     },
- });
+    }
+  );
 };
 
 // export const makePurchase = async (user:Document,  asset:Asset,
@@ -161,7 +164,7 @@ export const makeGift = async (user: Document, amount: number) => {
 // }
 
 export const getCash = async (user: Document): Promise<number> => {
-  return (await getUserById(user._id)).cash
+  return (await getUserById(user._id)).cash;
 };
 
 export const getAssets = async (user: Document): Promise<Asset[]> => {
@@ -282,7 +285,7 @@ export const buyAsset = async (
       { email: user.email },
       {
         $set: {
-          cash: cash
+          cash: cash,
         },
       }
     );
@@ -301,9 +304,11 @@ export const sellAsset = async (
 ) => {
   try {
     const totalProceeds: number = bidPrice * shares - COMMISSION;
-    const positionSaleResponse = sellPosition(user,tickerSymbol,shares).then((cashGained=>{
-      //TODO
-    }));
+    const positionSaleResponse = sellPosition(user, tickerSymbol, shares).then(
+      (cashGained) => {
+        //TODO
+      }
+    );
 
     const cash = user.cash + totalProceeds;
     await client.connect();
@@ -319,12 +324,11 @@ export const sellAsset = async (
       cash
     );
 
-
     await collection.updateOne(
       { email: user.email },
       {
         $set: {
-          cash: cash
+          cash: cash,
         },
       }
     );
@@ -334,7 +338,6 @@ export const sellAsset = async (
     return false;
   }
 };
-
 
 // create a transaction
 export const createTransaction = async (
@@ -366,8 +369,12 @@ export const createTransaction = async (
   );
 };
 
-const setLotCount = async (user:Document, positionID:number, lotID: number, shares:number) => {
- 
+const setLotCount = async (
+  user: Document,
+  positionID: number,
+  lotID: number,
+  shares: number
+) => {
   await client.connect();
   const db = client.db("investments");
   const collection = db.collection("investors");
@@ -375,45 +382,56 @@ const setLotCount = async (user:Document, positionID:number, lotID: number, shar
     { id: user._id },
     {
       $set: {
-        "positions.$[positionID].lots.$[lotID]": shares
+        "positions.$[positionID].lots.$[lotID]": shares,
       },
     }
   );
-}
+};
 
-export type LotType = {shares:number, basis:number}
-export type PositionType = {symbol:string, lots:LotType[]}
+//export type LotType = {shares:number, basis:number}
+export type PositionType = { symbol: string; lots: Lot[] };
 export const sellPosition = async (
-  user:Document,
+  user: Document,
   tickerSymbol: string,
   sharesToSell: number
 ) => {
   const positions = user.positions;
   // Find the specific position from a ticker, grab the lots, and reverse them.
-  const reversedLotsByTicker: LotType[] = positions.filter((position:PositionType)=>{ return position.symbol.toUpperCase() === tickerSymbol.toUpperCase()})[0].lots.reverse();
+  const reversedLotsByTicker: Lot[] = positions
+    .filter((position: PositionType) => {
+      return position.symbol.toUpperCase() === tickerSymbol.toUpperCase();
+    })[0]
+    .lots.reverse();
 
-  const validateSale = (lots:LotType[], amountToAttemptToSell): boolean =>{
-    const totalAvailableSharesToSell:number = lots.reduce((prevLot, nextLot)=>{return prevLot + nextLot.shares},0)
-    return totalAvailableSharesToSell >= amountToAttemptToSell;
-  }
+  // TODO: move this validation one level higher
 
-  if(validateSale(reversedLotsByTicker, sharesToSell)){
-    console.log(`Sale is valid, you have ${reversedLotsByTicker} lots`)
-    console.log("Proceeding to sale...")
-  } else {
-    console.log(`Sale is invalid!, you have ${reversedLotsByTicker} lots`)
-  }
+  // const validateSale = (lots:Lot[], amountToAttemptToSell): boolean =>{
+  //   const totalAvailableSharesToSell:number = lots.reduce((prevLot, nextLot)=>{return prevLot + nextLot.shares},0)
+  //   return totalAvailableSharesToSell >= amountToAttemptToSell;
+  // }
+
+  // if(validateSale(reversedLotsByTicker, sharesToSell)){
+  //   console.log(`Sale is valid, you have ${reversedLotsByTicker} lots`)
+  //   console.log("Proceeding to sale...")
+  // } else {
+  //   console.log(`Sale is invalid!, you have ${reversedLotsByTicker} lots`)
+  // }
   let saleQuota: number = sharesToSell;
-  while(saleQuota !== 0) {
+  while (saleQuota !== 0) {
     const someSoldLot = reversedLotsByTicker.pop();
-    console.log(`Selling lot... {shares: ${someSoldLot.shares} basis: ${someSoldLot.basis}}`)
-    const proposedSharesToBeSold = someSoldLot.shares
-    if(proposedSharesToBeSold >= saleQuota) {
+    console.log(
+      `Selling lot... {shares: ${someSoldLot.shares} basis: ${someSoldLot.basis}}`
+    );
+    const proposedSharesToBeSold = someSoldLot.shares;
+    if (proposedSharesToBeSold >= saleQuota) {
       // We just sold off the remaining shares with this lot.
-      const remainder = proposedSharesToBeSold - saleQuota
-      if(remainder > 0) {
+      const remainder = proposedSharesToBeSold - saleQuota;
+      if (remainder > 0) {
         // If we sold the exact amount, don't push a lot with zero shares.
-        reversedLotsByTicker.push({shares: remainder, basis: someSoldLot.basis})
+        reversedLotsByTicker.push({
+          shares: remainder,
+          basis: someSoldLot.basis,
+        });
       }
       // Set the saleQuota to 0 to break the while loop.
       saleQuota = 0;
@@ -425,8 +443,26 @@ export const sellPosition = async (
   const newLotsInOriginalOrder = reversedLotsByTicker.reverse();
 
   //TODO Update mongo with newLotsInOriginalOrder
+  await client.connect();
+  const db = client.db("investments");
+  const collection = db.collection("investors");
 
-}
+  await collection.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        "positions.$[p].lots": newLotsInOriginalOrder,
+      },
+    },
+    {
+      arrayFilters: [
+        {
+          "p.symbol": tickerSymbol.toUpperCase(),
+        },
+      ],
+    }
+  );
+};
 
 // get or create a position
 export const createPosition = async (
@@ -440,7 +476,7 @@ export const createPosition = async (
     if (position.symbol.toUpperCase() === tickerSymbol.toUpperCase()) {
       return createLot(user, lot, tickerSymbol);
     }
-  })
+  });
 
   // Create a new position for the ticker symbol
   await client.connect();
@@ -456,7 +492,7 @@ export const createPosition = async (
   });
 
   console.log("Result of adding position in ", tickerSymbol, ": ", result);
-}
+};
 
 export const createLot = async (
   user: Document,
@@ -469,7 +505,7 @@ export const createLot = async (
   // Find the user's position's element we need to update
 
   return collection.updateOne(
-    {_id: user._id},
+    { _id: user._id },
     {
       $push: {
         "positions.$[p].lots": lot,
