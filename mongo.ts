@@ -1,10 +1,4 @@
-import {
-  MongoClient,
-  ObjectId,
-  Document,
-  UpdateResult,
-  Collection,
-} from "mongodb";
+import { MongoClient, ObjectId, Document, UpdateResult } from "mongodb";
 import { getPrice, lookupTicker } from "./stocks";
 import {
   Asset,
@@ -38,52 +32,6 @@ export const login = async (
   if (foundUser == null || foundUser === undefined) return null;
   return foundUser;
 };
-
-// export const getEmailById = async (userId:string): Promise<string> => {
-//   await client.connect();
-//   console.log("getting email from user id ", userId)
-//   const db = client.db("investments");
-//   const collection = db.collection("investors");
-//   const foundUser = await collection.findOne({
-//     _id: new ObjectId(userId),
-//   });
-//   if (!foundUser) {
-//     return "";
-//   }
-//   return foundUser.email;
-// }
-
-// async function checkFavoriteStock(tickerSymbol: string) {
-//   const data = await yahooHistory.getPriceHistory(tickerSymbol);
-//   console.log(await data.dividendHistory);
-
-//   const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
-//   console.log(symbol);
-//   if (!symbol.error) {
-//     console.log(tickerSymbol + ": valid");
-//     return true;
-//   } else {
-//     console.log(tickerSymbol + ": invalid");
-//     return false;
-//   }
-// }
-
-// router.get("ail/API/getEmailById", async (req, res) => {
-//   console.log("headers = ", req.headers);
-//   const token = req.headers.authorization.split(" ")[1];
-//   const payload = await jwt.verify(token, process.env.JWT_SECRET);
-//   const email: string = await getEmailById(payload.userId);
-//   if (!email) {
-//     res.status(401).send("Invalid user id");
-//   } else {
-//     console.log("returned email: ", email);
-//     res.status(200).json({ email: email });
-//   }
-// });
-
-// const getCollection = ():Collection<Document> => {
-
-// }
 
 export const getUserById = async (userId: string): Promise<Document> => {
   await client.connect();
@@ -264,7 +212,7 @@ export const buyAsset = async (
 ) => {
   try {
     const totalPrice: number = askPrice * shares + COMMISSION;
-    const lot = { shares: shares, basis: totalPrice / shares };
+    const lot: Lot = { shares: shares, basis: totalPrice / shares };
     await createPosition(user, tickerSymbol, lot);
 
     const cash = user.cash - totalPrice;
@@ -421,21 +369,35 @@ export const sellPosition = async (
   const db = client.db("investments");
   const collection = db.collection("investors");
 
-  await collection.updateOne(
-    { _id: user._id },
-    {
-      $set: {
-        "positions.$[p].lots": newLotsInOriginalOrder,
-      },
-    },
-    {
-      arrayFilters: [
-        {
-          "p.symbol": tickerSymbol.toUpperCase(),
+  if (newLotsInOriginalOrder.length > 0) {
+    await collection.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          "positions.$[p].lots": newLotsInOriginalOrder,
         },
-      ],
-    }
-  );
+      },
+      {
+        arrayFilters: [
+          {
+            "p.symbol": tickerSymbol.toUpperCase(),
+          },
+        ],
+      }
+    );
+  }
+
+  // oops! we sold every last one - axe the entire position
+  else {
+    await collection.updateOne(
+      { _id: user._id },
+      {
+        $pull: {
+          positions: { symbol: tickerSymbol },
+        },
+      }
+    );
+  }
 };
 
 // get or create a position
