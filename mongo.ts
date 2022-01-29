@@ -304,11 +304,7 @@ export const sellAsset = async (
 ) => {
   try {
     const totalProceeds: number = bidPrice * shares - COMMISSION;
-    const positionSaleResponse = sellPosition(user, tickerSymbol, shares).then(
-      (cashGained) => {
-        //TODO
-      }
-    );
+    await sellPosition(user, tickerSymbol, shares)
 
     const cash = user.cash + totalProceeds;
     await client.connect();
@@ -369,27 +365,6 @@ export const createTransaction = async (
   );
 };
 
-const setLotCount = async (
-  user: Document,
-  positionID: number,
-  lotID: number,
-  shares: number
-) => {
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
-  await collection.updateOne(
-    { id: user._id },
-    {
-      $set: {
-        "positions.$[positionID].lots.$[lotID]": shares,
-      },
-    }
-  );
-};
-
-//export type LotType = {shares:number, basis:number}
-export type PositionType = { symbol: string; lots: Lot[] };
 export const sellPosition = async (
   user: Document,
   tickerSymbol: string,
@@ -398,7 +373,7 @@ export const sellPosition = async (
   const positions = user.positions;
   // Find the specific position from a ticker, grab the lots, and reverse them.
   const reversedLotsByTicker: Lot[] = positions
-    .filter((position: PositionType) => {
+    .filter((position: { symbol: string; }) => {
       return position.symbol.toUpperCase() === tickerSymbol.toUpperCase();
     })[0]
     .lots.reverse();
@@ -442,7 +417,6 @@ export const sellPosition = async (
 
   const newLotsInOriginalOrder = reversedLotsByTicker.reverse();
 
-  //TODO Update mongo with newLotsInOriginalOrder
   await client.connect();
   const db = client.db("investments");
   const collection = db.collection("investors");
@@ -490,8 +464,6 @@ export const createPosition = async (
       positions: newPosition,
     },
   });
-
-  console.log("Result of adding position in ", tickerSymbol, ": ", result);
 };
 
 export const createLot = async (
