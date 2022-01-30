@@ -13,8 +13,8 @@ import {
   makeGift,
   sellAsset,
 } from "./mongo";
-import { getPrice, lookupTicker, isValidSymbol } from "./stocks";
-import { Asset, StockPrices, Transaction, User, UserInfo } from "./types";
+import { getPrice, lookupTicker, isValidSymbol, getHistoricalPrices } from "./stocks";
+import { Asset, HistoricalPrice, StockPrices, Transaction, User, UserInfo } from "./types";
 
 global.fetch = require("node-fetch");
 const jwt = require("jsonwebtoken");
@@ -77,7 +77,21 @@ router.get("/API/lookupTicker", async (req, res) => {
   res.status(200).send(companyName);
 });
 
-router.get("/API/getHistoricalPrices", async (req, res) => {});
+router.get("/API/getHistoricalPrices", async (req, res) => {
+
+  const tickerSymbol = req.query.tickerSymbol.toString();
+
+  const isValid: boolean = await isValidSymbol(tickerSymbol);
+
+  //shouldn't ever happen
+  if (!isValid) {
+    res.status(400).send(`Invalid Symbol: ${tickerSymbol}`);
+    return;
+  }
+
+  const prices:HistoricalPrice[] = await getHistoricalPrices(tickerSymbol)
+  res.status(200).send (prices)
+});
 
 router.get("/API/getStockPrice", async (req, res) => {
   //console.log(" Get Stock Price Called on ", req.query, " and req= ", req)
