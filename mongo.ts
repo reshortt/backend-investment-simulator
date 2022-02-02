@@ -219,7 +219,6 @@ export const buyAsset = async (
     await client.connect();
     const db = client.db("investments");
     const collection = db.collection("investors");
-    console.log("Decreasing cash from ", user.cash, " to ", cash);
     await createTransaction(
       user,
       TransactionType.BUY,
@@ -258,7 +257,6 @@ export const sellAsset = async (
     await client.connect();
     const db = client.db("investments");
     const collection = db.collection("investors");
-    console.log("Decreasing cash from ", user.cash, " to ", cash);
     await createTransaction(
       user,
       TransactionType.SELL,

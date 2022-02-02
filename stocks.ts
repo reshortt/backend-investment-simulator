@@ -9,14 +9,10 @@ export const getHistoricalPrices = async (
 ): Promise<HistoricalPrice[]> => {
   const prices: HistoricalPrice[] = [];
 
-  console.log("Getting Price History of ", tickerSymbol)
   const data = await yahooHistory.getPriceHistory(tickerSymbol);
   const priceHistory = await data.priceHistory;
   const priceHistoryRows: string[] = priceHistory.toString().split("\n");
 
-  console.log ("Price History for ", tickerSymbol, " ---->> \n", (priceHistoryRows && priceHistoryRows.length > 2) ?   (priceHistoryRows[0], priceHistoryRows[1]): "...nothing yet...")
-
-  console.log("Number of rows in price history: ", priceHistoryRows.length);
   for (var row = 1; row < priceHistoryRows.length; ++row) {
     const rowString = priceHistoryRows[row];
     //console.log(rowString);
