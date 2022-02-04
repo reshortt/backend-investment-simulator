@@ -13,8 +13,8 @@ import {
   makeGift,
   sellAsset,
 } from "./mongo";
-import { getPrice, lookupTicker, isValidSymbol, getHistoricalPrices, getStockPriceOnDate } from "./stocks";
-import { Asset, HistoricalPrice, StockPrices, Transaction, User, UserInfo } from "./types";
+import { getPrice, lookupTicker, isValidSymbol, getHistoricalPrices, getStockPriceOnDate, setPriceHistory } from "./stocks";
+import { Asset, HistoricalPrice, StockPrices, Transaction, TransactionType, User, UserInfo } from "./types";
 
 global.fetch = require("node-fetch");
 const jwt = require("jsonwebtoken");
@@ -160,6 +160,24 @@ router.get("/API/getUser", async (req, res) => {
   }
  // console.log ("verified user ")
 
+  const lookupAssets = async (user:Document):Promise<Asset[]> => {
+      const assets:Asset[] = await getAssets(user);
+      for (let asset of assets) {
+        setPriceHistory(asset.stock.symbol)
+      }
+      return assets
+  }
+
+
+  const lookupTransactions = async (user:Document):Promise<Transaction[]> => {
+    const transactions:Transaction[] = await getTransactions(user);
+    for (let transaction of transactions) {
+      if (transaction.symbol)
+        setPriceHistory(transaction.symbol)
+    }
+    return transactions
+}
+
   const user: User = {
     info: {
       name: foundUser.name,
@@ -167,8 +185,8 @@ router.get("/API/getUser", async (req, res) => {
       cash: foundUser.cash,
       created: foundUser.created,
     },
-    transactions: await getTransactions(foundUser),
-    assets: await getAssets(foundUser),
+    transactions: await lookupTransactions(foundUser),
+    assets: await lookupAssets(foundUser),
   };
   //console.log ("sending user json info over")
   res.status(200).json(user);

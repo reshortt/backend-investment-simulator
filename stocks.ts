@@ -26,14 +26,15 @@ export const getHistoricalPrices = async (
   return prices;
 };
 
-export const getPrice = async (tickerSymbol: string): Promise<StockPrices|undefined> => {
-  if (!tickerSymbol)
-    return undefined
+export const getPrice = async (
+  tickerSymbol: string
+): Promise<StockPrices | undefined> => {
+  if (!tickerSymbol) return undefined;
   const stockInfo = await yahooStockAPI.getSymbol(tickerSymbol);
   //console.log("stock info for ", tickerSymbol, " is ", companyName);
   if (!stockInfo) {
-    console.log("No stock info for ", tickerSymbol, " : ", stockInfo)
-    return undefined
+    console.log("No stock info for ", tickerSymbol, " : ", stockInfo);
+    return undefined;
   }
 
   const previousClose: number = stockInfo.response.previousClose;
@@ -63,7 +64,7 @@ export const getPrice = async (tickerSymbol: string): Promise<StockPrices|undefi
   };
 
   //console.log("Returning new StockPrices Object: ", JSON.stringify(prices))
-  return prices
+  return prices;
 };
 
 export const isValidSymbol = async (tickerSymbol: string): Promise<boolean> => {
@@ -83,38 +84,63 @@ export const isValidSymbol = async (tickerSymbol: string): Promise<boolean> => {
 };
 
 export const lookupTicker = async (tickerSymbol: string): Promise<string> => {
-  if (!tickerSymbol)
-    return "";
+  if (!tickerSymbol) return "";
   const tickerName: string = await ticker.lookup(tickerSymbol);
   //console.log("TICKER LOOOKUP: ", tickerSymbol, "->", tickerName);
   return tickerName;
 };
 
 const priceMap = new Map<string, HistoricalPrice[]>();
+const tickersCalculating = new Set<string>();
 
+export const setPriceHistory = (symbol: string) => {
+  const prices = priceMap.get(symbol);
+  if (prices === undefined || prices == null) {
+    if (!tickersCalculating.has(symbol)) {
+      tickersCalculating.add(symbol)
+      console.log("(a) Getting Price History for " + symbol + "...");
+      getHistoricalPrices(symbol).then((prices: HistoricalPrice[]) => {
+        priceMap.set(symbol, prices);
+        console.log(
+          "(a) Finished getting Price History for ",
+          symbol,
+          " Entries: ",
+          prices.length
+        );
+      });
+    }
+  }
+};
 
-export const getStockPriceOnDate = async (symbol:string, date:Date):Promise<number> => {
+export const getStockPriceOnDate = async (
+  symbol: string,
+  date: Date
+): Promise<number> => {
   let prices = priceMap.get(symbol);
   if (!prices || prices === undefined) {
-    console.log ("Getting Price History for " + symbol + "...")
+    console.log("(b) Getting Price History for " + symbol + "...");
     prices = await getHistoricalPrices(symbol);
     priceMap.set(symbol, prices);
-    console.log ("Finished getting Price History for ", symbol , ". Entries: ", prices.length)
+    console.log(
+      "(b) Finished getting Price History for ",
+      symbol,
+      ". Entries: ",
+      prices.length
+    );
   }
 
   let lastPrice: number = 0;
-  let thisDate:Date = new Date(date)
+  let thisDate: Date = new Date(date);
 
   // brute force march from beginning to end
   for (let price of prices) {
-    let priceDate:Date = new Date(price.date)
+    let priceDate: Date = new Date(price.date);
 
     if (priceDate > thisDate) {
-        break
-    } 
+      break;
+    }
     lastPrice = price.price;
   }
 
   return lastPrice;
-}
-
+};
