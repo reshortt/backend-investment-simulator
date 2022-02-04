@@ -13,7 +13,7 @@ import {
   makeGift,
   sellAsset,
 } from "./mongo";
-import { getPrice, lookupTicker, isValidSymbol, getHistoricalPrices } from "./stocks";
+import { getPrice, lookupTicker, isValidSymbol, getHistoricalPrices, getStockPriceOnDate } from "./stocks";
 import { Asset, HistoricalPrice, StockPrices, Transaction, User, UserInfo } from "./types";
 
 global.fetch = require("node-fetch");
@@ -29,17 +29,17 @@ router.post("/login", express.json(), async (req, res) => {
 
   if (!getUserByEmail(email)) {
     console.log("never heard of user: ", req.body.email);
-    return res.status(401).send("Invalid Email");
+    res.status(401).send("Invalid Email");
   }
 
   const foundUser: Document = await login(email, password);
   if (!foundUser) {
     const msg: string = "Invalid password for " + email;
     console.log(msg);
-    return res.status(401).send(msg);
+    res.status(401).send(msg);
   }
 
-  console.log("Welcome to ", foundUser.name);
+  //console.log("Welcome to ", foundUser.name);
   const token = jwt.sign({ userId: foundUser._id }, process.env.JWT_SECRET, {
     expiresIn: 200000, // TODO: go back to 2s
   });
@@ -152,8 +152,14 @@ router.get("/API/getUserInfo", async (req, res) => {
 });
 
 router.get("/API/getUser", async (req, res) => {
+
   const foundUser = await verifyUser(req, res);
-  if (!foundUser) return;
+  if (!foundUser) {
+   // console.log("Can'f find user");
+     res.status(500).json({});
+  }
+ // console.log ("verified user ")
+
   const user: User = {
     info: {
       name: foundUser.name,
@@ -164,6 +170,7 @@ router.get("/API/getUser", async (req, res) => {
     transactions: await getTransactions(foundUser),
     assets: await getAssets(foundUser),
   };
+  //console.log ("sending user json info over")
   res.status(200).json(user);
 });
 
@@ -229,6 +236,18 @@ router.get("/API/getCash", async (req, res) => {
   const cash: number = await getCash(foundUser);
   res.status(200).json({ cash: cash });
 });
+
+router.get("/API/getStockPriceOnDate", async (req, res) => {
+  const foundUser = await verifyUser(req, res);
+  if (!foundUser) return;
+
+  const date: Date = new Date(req.query.date.toString());
+  const symbol:string = req.query.ticker.toString()
+  const price = await (getStockPriceOnDate(symbol, date))
+
+  //console.log("Price for ", symbol, " on ", date, ": ", price)
+  res.status(200).send ({price})
+})
 
 router.get("/API/buyAsset", async (req, res) => {
   const foundUser = await verifyUser(req, res);
