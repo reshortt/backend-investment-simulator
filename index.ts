@@ -144,7 +144,7 @@ router.get("/API/getUserInfo", async (req, res) => {
   if (!foundUser) return;
   const userInfo: UserInfo = {
     name: foundUser.name,
-    email: foundUser.emai,
+    email: foundUser.email,
     cash: foundUser.cash,
     created: foundUser.created,
   };
