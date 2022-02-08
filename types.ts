@@ -37,6 +37,7 @@ export type Transaction = {
   shares: number;
   name:string;
   cash:number;
+  commission:number;
 };
 
 export enum TransactionType {

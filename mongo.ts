@@ -155,6 +155,7 @@ export const getTransactions = async (
       const currentAmount: number = currentTransaction.amount;
       const currentShares: number = currentTransaction.shares;
       const currentCash: number = currentTransaction.cash;
+      const currentCommission:number = currentTransaction.commission;
 
       const transaction = {
         symbol: currentSymbol,
@@ -164,6 +165,7 @@ export const getTransactions = async (
         amount: currentAmount,
         shares: currentShares,
         cash: currentCash,
+        commission: currentCommission,
       };
 
       return transaction;
@@ -225,7 +227,8 @@ export const buyAsset = async (
       tickerSymbol,
       shares,
       totalPrice,
-      cash
+      cash,
+      COMMISSION
     );
 
     await collection.updateOne(
@@ -263,7 +266,8 @@ export const sellAsset = async (
       tickerSymbol,
       shares,
       totalProceeds,
-      cash
+      cash,
+      COMMISSION
     );
 
     await collection.updateOne(
@@ -288,7 +292,8 @@ export const createTransaction = async (
   tickerSymbol: string,
   shares: number,
   amount: number,
-  cash: number
+  cash: number,
+  commission:number
 ) => {
   await client.connect();
   const db = client.db("investments");
@@ -305,6 +310,7 @@ export const createTransaction = async (
           shares: shares,
           symbol: tickerSymbol,
           cash: cash,
+          commission:commission
         },
       },
     }
