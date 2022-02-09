@@ -34,19 +34,20 @@ router.post("/login", express.json(), async (req, res) => {
 
   const foundUser: Document = await login(email, password);
   if (!foundUser) {
-    const msg: string = "Invalid password for " + email;
-    console.log(msg);
-    res.status(401).send(msg);
+    const msg: string = "Invalid Credentials";
+    console.log("Invaid creds")
+    res.status(400).send(msg);
+    return
   }
 
-  //console.log("Welcome to ", foundUser.name);
+  console.log("Welcome to ", foundUser);
   const token = jwt.sign({ userId: foundUser._id }, process.env.JWT_SECRET, {
     expiresIn: 200000, // TODO: go back to 2s
   });
   const replyObject = {
     token,
     email: foundUser.email,
-    userName: foundUser.name,
+    userName: foundUser.name
   };
   res.status(200).send(replyObject);
 });

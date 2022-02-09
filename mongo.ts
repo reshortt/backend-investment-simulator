@@ -155,6 +155,7 @@ export const getTransactions = async (
       const currentAmount: number = currentTransaction.amount;
       const currentShares: number = currentTransaction.shares;
       const currentCash: number = currentTransaction.cash;
+
       const currentCommission:number = currentTransaction.commission;
 
       const transaction = {
