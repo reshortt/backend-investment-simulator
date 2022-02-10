@@ -226,9 +226,15 @@ router.get("/API/getBalance", async (req, res) => {
 
 const verifyUser = async (req, res): Promise<Document> => {
   const token = req.headers.authorization.split(" ")[1];
-  const payload = await jwt.verify(token, process.env.JWT_SECRET);
-  const foundUser = await getUserById(payload.userId);
-  if (!foundUser) res.status(401).send("Invalid user ID");
+  let payload, foundUser
+  try {
+     payload = await jwt.verify(token, process.env.JWT_SECRET);
+  }
+  catch (e) {
+      // TODO: send token expiry notice
+      return null
+  }
+   foundUser = await getUserById(payload.userId);
   return foundUser;
 };
 
