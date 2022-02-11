@@ -73,8 +73,6 @@ export const isValidSymbol = async (tickerSymbol: string): Promise<boolean> => {
     return false;
   }
 
-  //console.log(`${tickerSymbol} is ${name}`)
-
   const symbol = await yahooStockAPI.getSymbol(tickerSymbol);
 
   const isError: boolean = Boolean(symbol.error);
