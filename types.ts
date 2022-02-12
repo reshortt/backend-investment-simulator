@@ -16,6 +16,7 @@ export type StockPrices = {
 };
 export type HistoricalPrice = { date: Date; price: number };
 
+
 export type Dividend = {
   date: Date; price: number
 }
