@@ -13,8 +13,9 @@ import {
   makeGift,
   sellAsset,
 } from "./mongo";
-import { getPrice, lookupTicker, isValidSymbol, getHistoricalPrices, getStockPriceOnDate, setPriceHistory } from "./stocks";
-import { Asset, HistoricalPrice, StockPrices, Transaction, TransactionType, User, UserInfo } from "./types";
+import { getPrice, lookupTicker, isValidSymbol, getStockPriceOnDate, cacheHistoricalData, getHistoricalDividends } from "./stocks";
+import { Asset, Dividend, StockPrices, Transaction, User, UserInfo } from "./types";
+import { insertDividends } from "./Calculations";
 
 global.fetch = require("node-fetch");
 const jwt = require("jsonwebtoken");
@@ -27,10 +28,10 @@ router.post("/login", express.json(), async (req, res) => {
   const password: string = req.body.password;
   const email: string = req.body.email;
 
-  if (!getUserByEmail(email)) {
-    console.log("never heard of user: ", req.body.email);
-    res.status(401).send("Invalid Email");
-  }
+  // if (!getUserByEmail(email)) {
+  //   console.log("never heard of user: ", req.body.email);
+  //   res.status(401).send("Invalid Username");
+  // }
 
   const foundUser: Document = await login(email, password);
   if (!foundUser) {
@@ -40,10 +41,21 @@ router.post("/login", express.json(), async (req, res) => {
     return
   }
 
-  console.log("Welcome to ", foundUser);
   const token = jwt.sign({ userId: foundUser._id }, process.env.JWT_SECRET, {
     expiresIn: 200000, // TODO: go back to 2s
   });
+
+  
+  const transactions = await getTransactions(foundUser)
+
+  // should always be true cuz of initial deposit, but whatevs
+  if (transactions.length > 0) {
+
+    // only look at dividends since last transaction
+    const startDate:Date = transactions[transactions.length - 1].date
+    await insertDividends(foundUser, await getAssets(foundUser), startDate)
+  }
+
   const replyObject = {
     token,
     email: foundUser.email,
@@ -78,7 +90,7 @@ router.get("/API/lookupTicker", async (req, res) => {
   res.status(200).send(companyName);
 });
 
-router.get("/API/getHistoricalPrices", async (req, res) => {
+router.get("/API/getHistoricalDividends", async (req, res) => {
 
   const tickerSymbol = req.query.tickerSymbol.toString();
 
@@ -90,8 +102,8 @@ router.get("/API/getHistoricalPrices", async (req, res) => {
     return;
   }
 
-  const prices:HistoricalPrice[] = await getHistoricalPrices(tickerSymbol)
-  res.status(200).send (prices)
+  const dividends:Dividend[] = await getHistoricalDividends(tickerSymbol)
+  res.status(200).send (dividends)
 });
 
 router.get("/API/getStockPrice", async (req, res) => {
@@ -164,7 +176,7 @@ router.get("/API/getUser", async (req, res) => {
   const lookupAssets = async (user:Document):Promise<Asset[]> => {
       const assets:Asset[] = await getAssets(user);
       for (let asset of assets) {
-        setPriceHistory(asset.stock.symbol)
+        cacheHistoricalData(asset.stock.symbol)
       }
       return assets
   }
@@ -174,7 +186,7 @@ router.get("/API/getUser", async (req, res) => {
     const transactions:Transaction[] = await getTransactions(user);
     for (let transaction of transactions) {
       if (transaction.symbol)
-        setPriceHistory(transaction.symbol)
+        cacheHistoricalData(transaction.symbol)
     }
     return transactions
 }

@@ -21,6 +21,11 @@ export type Dividend = {
   date: Date; price: number
 }
 
+export type HistoricalData = {
+  prices:HistoricalPrice[];
+  dividends:Dividend[];
+}
+
 export type UserInfo = {
   name: string;
   email: string;

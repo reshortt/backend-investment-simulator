@@ -78,6 +78,41 @@ export const createUser = async (
   return getUserByEmail(email);
 };
 
+export const insertDividend = async (user:Document, symbol:string, date:Date, amount:number, shares:number) => {
+  await client.connect();
+  const db = client.db("investments");
+  const collection = db.collection("investors");
+
+  const totalDividend = amount * shares 
+  const newCash = await getCash(user) +  totalDividend
+  const newDate = new Date(date)
+
+  await collection.updateOne(
+    { _id: user._id },
+    {
+      $push: {
+        transactions: {
+          date: newDate,
+          type: TransactionType.DIVIDEND,
+          amount: totalDividend,
+          cash: newCash,
+          symbol,
+          shares
+        },
+      },
+    }
+  );
+
+  await collection.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        cash: newCash,
+      },
+    }
+  );
+}
+
 export const makeGift = async (user: Document, amount: number) => {
   await client.connect();
   const db = client.db("investments");
@@ -425,7 +460,7 @@ export const createPosition = async (
   const collection = db.collection("investors");
 
   const newPosition = { symbol: tickerSymbol, lots: [lot] };
-  console.log("pushing new position ", JSON.stringify(newPosition));
+  //console.log("pushing new position ", JSON.stringify(newPosition));
   const result: UpdateResult = await collection.updateOne(user, {
     $push: {
       positions: newPosition,

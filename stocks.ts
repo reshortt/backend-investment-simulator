@@ -1,15 +1,17 @@
-import { HistoricalPrice, StockPrices } from "./types";
+import { Dividend, HistoricalData, HistoricalPrice, StockPrices } from "./types";
 
 const yahooStockAPI = require("yahoo-stock-api");
 const yahooHistory = require("yahoo-finance-history");
 const ticker = require("stock-ticker-symbol");
 
-export const getHistoricalPrices = async (
+export const getHistoricalData = async (
   tickerSymbol: string
-): Promise<HistoricalPrice[]> => {
+): Promise<HistoricalData> => {
   const prices: HistoricalPrice[] = [];
+  const dividends: Dividend[] = [];
 
   const data = await yahooHistory.getPriceHistory(tickerSymbol);
+
   const priceHistory = await data.priceHistory;
   const priceHistoryRows: string[] = priceHistory.toString().split("\n");
 
@@ -23,7 +25,23 @@ export const getHistoricalPrices = async (
     };
     prices.push(price);
   }
-  return prices;
+
+  const dividendHistory = await data.dividendHistory;
+  const dividendHistoryRows: string[] = dividendHistory.toString().split("\n");
+
+  for (var row = 1; row < dividendHistoryRows.length; ++row) {
+    const rowString = dividendHistoryRows[row];
+    const columns: string[] = rowString.split(",");
+    const dividend: Dividend = {
+      date: new Date(columns[0]),
+      price: Number(columns[1]),
+    };
+    dividends.push(dividend);
+  }
+
+  const historicalData:HistoricalData = {prices:prices, dividends: dividends}
+
+  return historicalData;
 };
 
 export const getPrice = async (
@@ -89,21 +107,25 @@ export const lookupTicker = async (tickerSymbol: string): Promise<string> => {
 };
 
 const priceMap = new Map<string, HistoricalPrice[]>();
+const dividendMap = new Map<string, Dividend[]>();
 const tickersCalculating = new Set<string>();
 
-export const setPriceHistory = (symbol: string) => {
+export const cacheHistoricalData = (symbol: string) => {
   const prices = priceMap.get(symbol);
   if (prices === undefined || prices == null) {
     if (!tickersCalculating.has(symbol)) {
       tickersCalculating.add(symbol)
-      console.log("(a) Getting Price History for " + symbol + "...");
-      getHistoricalPrices(symbol).then((prices: HistoricalPrice[]) => {
-        priceMap.set(symbol, prices);
+      console.log("Cacheing History for " + symbol + "...");
+      getHistoricalData(symbol).then((data:HistoricalData) => {
+        priceMap.set(symbol, data.prices);
+        dividendMap.set(symbol, data.dividends)
         console.log(
-          "(a) Finished getting Price History for ",
+          "Finished Caching History for ",
           symbol,
-          " Entries: ",
-          prices.length
+          " Prices: ",
+          data.prices.length,
+          ", Dividends: ",
+          data.dividends.length
         );
       });
     }
@@ -114,31 +136,50 @@ export const getStockPriceOnDate = async (
   symbol: string,
   date: Date
 ): Promise<number> => {
-  let prices = priceMap.get(symbol);
-  if (!prices || prices === undefined) {
+  let priceHistory = priceMap.get(symbol);
+  if (!priceHistory || priceHistory === undefined) {
     console.log("(b) Getting Price History for " + symbol + "...");
-    prices = await getHistoricalPrices(symbol);
-    priceMap.set(symbol, prices);
+    priceHistory = (await getHistoricalData(symbol)).prices;
+    priceMap.set(symbol, priceHistory);
     console.log(
       "(b) Finished getting Price History for ",
       symbol,
       ". Entries: ",
-      prices.length
+      priceHistory.length
     );
   }
 
-  let lastPrice: number = 0;
-  let thisDate: Date = new Date(date);
+  let lastPrice: number = undefined;
+  let targetDate: Date = new Date(date);
 
-  // brute force march from beginning to end
-  for (let price of prices) {
-    let priceDate: Date = new Date(price.date);
+  // brute force march from end to beginning
+  for (let i = priceHistory.length-1; i >=0; --i) {
+    const historicalPrice:HistoricalPrice = priceHistory[i]
+    let priceDate: Date = new Date(historicalPrice.date);
 
-    if (priceDate > thisDate) {
+    if (lastPrice && priceDate < targetDate) {
       break;
     }
-    lastPrice = price.price;
+    lastPrice = historicalPrice.price;
   }
 
   return lastPrice;
 };
+
+export const getHistoricalDividends = async (symbol:string):Promise<Dividend[]> => {
+  let dividends:Dividend[] = dividendMap.get(symbol)
+  if (!dividends || dividends === undefined) {
+    console.log("(b) Getting Dividend History for " + symbol + "...");
+    dividends = (await getHistoricalData(symbol)).dividends
+    if (!dividends || dividends === undefined)
+      dividends = []
+    dividendMap.set(symbol, dividends);
+    console.log(
+      "(b) Finished getting Dividend History for ",
+      symbol,
+      ". Entries: ",
+      dividends.length
+    );
+  }
+  return dividends
+}
