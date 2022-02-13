@@ -14,7 +14,7 @@ import {
   sellAsset,
 } from "./mongo";
 import { getPrice, lookupTicker, isValidSymbol, getStockPriceOnDate, cacheHistoricalData, getHistoricalDividends } from "./stocks";
-import { Asset, Dividend, StockPrices, Transaction, User, UserInfo } from "./types";
+import { Asset, Dividend, SpotPrice, Transaction, Account, UserInfo } from "./types";
 import { insertDividends } from "./Calculations";
 
 global.fetch = require("node-fetch");
@@ -164,7 +164,7 @@ router.get("/API/getUserInfo", async (req, res) => {
   res.status(200).json(userInfo);
 });
 
-router.get("/API/getUser", async (req, res) => {
+router.get("/API/getAccount", async (req, res) => {
 
   const foundUser = await verifyUser(req, res);
   if (!foundUser) {
@@ -191,7 +191,7 @@ router.get("/API/getUser", async (req, res) => {
     return transactions
 }
 
-  const user: User = {
+  const account: Account = {
     info: {
       name: foundUser.name,
       email: foundUser.emai,
@@ -202,7 +202,7 @@ router.get("/API/getUser", async (req, res) => {
     assets: await lookupAssets(foundUser),
   };
   //console.log ("sending user json info over")
-  res.status(200).json(user);
+  res.status(200).json(account);
 });
 
 router.get("/API/getBalance", async (req, res) => {
@@ -214,7 +214,7 @@ router.get("/API/getBalance", async (req, res) => {
   // Promise.all waits for all promises in the passed in array to
   const userBalanceArray = await Promise.all(
     foundUser.positions.map(async (currentPosition) => {
-      const currentStockPrice: StockPrices = await getPrice(
+      const currentStockPrice: SpotPrice = await getPrice(
         currentPosition.symbol
       ); // stocks.ts
 

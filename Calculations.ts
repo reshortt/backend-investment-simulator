@@ -28,19 +28,19 @@ export const insertDividends = async (
     const dividends: Dividend[] = await getHistoricalDividends(
       asset.stock.symbol
     );
-    dividends.reverse();
     for (let dividend of dividends) {
-      if (dividend.date <= startDate) break;
-      console.log("Found dividend for ", asset.stock.symbol, ": ", dividend);
-      const shares: number = getQuantity(asset);
-      const amount: number = dividend.price;
-      const data: DividendData = {
-        symbol: asset.stock.symbol,
-        date: dividend.date,
-        amount,
-        shares,
-      };
-      newDividends.push(data);
+      if (dividend.date > startDate) {
+        console.log("Found dividend for ", asset.stock.symbol, ": ", dividend);
+        const shares: number = getQuantity(asset);
+        const amount: number = dividend.price;
+        const data: DividendData = {
+          symbol: asset.stock.symbol,
+          date: dividend.date,
+          amount,
+          shares,
+        };
+        newDividends.push(data);
+      }
     }
   }
 

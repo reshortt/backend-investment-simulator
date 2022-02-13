@@ -1,4 +1,4 @@
-import { Dividend, HistoricalData, HistoricalPrice, StockPrices } from "./types";
+import { Dividend, HistoricalData, HistoricalPrice, SpotPrice } from "./types";
 
 const yahooStockAPI = require("yahoo-stock-api");
 const yahooHistory = require("yahoo-finance-history");
@@ -39,6 +39,9 @@ export const getHistoricalData = async (
     dividends.push(dividend);
   }
 
+  const splitHistory = await data.splitHistory
+  splitHistory && console.log ("Split History for ", tickerSymbol, ": ", splitHistory)
+
   const historicalData:HistoricalData = {prices:prices, dividends: dividends}
 
   return historicalData;
@@ -46,7 +49,7 @@ export const getHistoricalData = async (
 
 export const getPrice = async (
   tickerSymbol: string
-): Promise<StockPrices | undefined> => {
+): Promise<SpotPrice | undefined> => {
   if (!tickerSymbol) return undefined;
   const stockInfo = await yahooStockAPI.getSymbol(tickerSymbol);
   //console.log("stock info for ", tickerSymbol, " is ", companyName);
@@ -75,7 +78,7 @@ export const getPrice = async (
       ? Number(askString)
       : previousClose;
 
-  const prices: StockPrices = {
+  const prices: SpotPrice = {
     bid: bid,
     ask: ask,
     previousClose: previousClose,

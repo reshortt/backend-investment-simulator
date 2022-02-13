@@ -4,7 +4,7 @@ import {
   Asset,
   COMMISSION,
   Lot,
-  StockPrices,
+  SpotPrice,
   Transaction,
   TransactionType,
 } from "./types";
@@ -156,7 +156,7 @@ export const getAssets = async (user: Document): Promise<Asset[]> => {
     user.positions.map(async (currentPosition: Position) => {
       const currentSymbol: string = currentPosition.symbol;
       const currentName: string = await lookupTicker(currentSymbol);
-      const currentPrice: StockPrices = await getPrice(currentSymbol);
+      const currentPrice: SpotPrice = await getPrice(currentSymbol);
       const lotArray: Lot[] = currentPosition.lots.map((currentLot) => {
         const currentShares = currentLot.shares;
         const currentBasis = currentLot.basis;
