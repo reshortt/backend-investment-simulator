@@ -13,9 +13,9 @@ import {
   makeGift,
   sellAsset,
 } from "./mongo";
-import { getPrice, lookupTicker, isValidSymbol, getStockPriceOnDate, cacheHistoricalData, getHistoricalDividends } from "./stocks";
-import { Asset, Dividend, SpotPrice, Transaction, Account, UserInfo } from "./types";
-import { insertDividends } from "./Calculations";
+import { getPrice, lookupTicker, isValidSymbol, getStockPriceOnDate, cacheHistoricalData } from "./stocks";
+import { Asset, SpotPrice, Transaction, Account, UserInfo } from "./types";
+import { insertEvents } from "./Calculations";
 
 global.fetch = require("node-fetch");
 const jwt = require("jsonwebtoken");
@@ -53,7 +53,7 @@ router.post("/login", express.json(), async (req, res) => {
 
     // only look at dividends since last transaction
     const startDate:Date = transactions[transactions.length - 1].date
-    await insertDividends(foundUser, await getAssets(foundUser), startDate)
+    await insertEvents(foundUser, await getAssets(foundUser), startDate)
   }
 
   const replyObject = {
@@ -90,21 +90,21 @@ router.get("/API/lookupTicker", async (req, res) => {
   res.status(200).send(companyName);
 });
 
-router.get("/API/getHistoricalDividends", async (req, res) => {
+// router.get("/API/getHistoricalDividends", async (req, res) => {
 
-  const tickerSymbol = req.query.tickerSymbol.toString();
+//   const tickerSymbol = req.query.tickerSymbol.toString();
 
-  const isValid: boolean = await isValidSymbol(tickerSymbol);
+//   const isValid: boolean = await isValidSymbol(tickerSymbol);
 
-  //shouldn't ever happen
-  if (!isValid) {
-    res.status(400).send(`Invalid Symbol: ${tickerSymbol}`);
-    return;
-  }
+//   //shouldn't ever happen
+//   if (!isValid) {
+//     res.status(400).send(`Invalid Symbol: ${tickerSymbol}`);
+//     return;
+//   }
 
-  const dividends:Dividend[] = await getHistoricalDividends(tickerSymbol)
-  res.status(200).send (dividends)
-});
+//   const dividends:Dividend[] = await getHistoricalDividends(tickerSymbol)
+//   res.status(200).send (dividends)
+// });
 
 router.get("/API/getStockPrice", async (req, res) => {
   //console.log(" Get Stock Price Called on ", req.query, " and req= ", req)

@@ -78,14 +78,101 @@ export const createUser = async (
   return getUserByEmail(email);
 };
 
-export const insertDividend = async (user:Document, symbol:string, date:Date, amount:number, shares:number) => {
+export const getLots = async (
+  user: Document,
+  symbol: string
+): Promise<Lot[]> => {
+  
   await client.connect();
   const db = client.db("investments");
   const collection = db.collection("investors");
 
-  const totalDividend = amount * shares 
-  const newCash = await getCash(user) +  totalDividend
-  const newDate = new Date(date)
+  user = await collection.findOne({_id: user._id})
+
+  return user.positions.filter((position: { symbol: string }) => {
+    return position.symbol.toUpperCase() === symbol.toUpperCase();
+  })[0].lots;
+};
+
+
+
+export const insertSplit = async (
+  user: Document,
+  symbol: string,
+  date: Date,
+  from: number,
+  to: number
+) => {
+  await client.connect();
+  const db = client.db("investments");
+  const collection = db.collection("investors");
+
+  const newDate = new Date(date);
+  const newCash = await getCash(user);
+
+  await collection.updateOne(
+    { _id: user._id },
+    {
+      $push: {
+        transactions: {
+          date: newDate,
+          type: TransactionType.SPLIT,
+          cash: newCash,
+          symbol,
+          from,
+          to,
+        },
+      },
+    }
+  );
+
+
+  const originalLots: Lot[] = user.positions.filter(
+    (position: { symbol: string }) => {
+      return position.symbol.toUpperCase() === symbol.toUpperCase();
+    }
+  )[0].lots;
+
+  const newLots: Lot[] = [];
+  for (let lot of originalLots) {
+    const newLot: Lot = {
+      shares: lot.shares * (to / from),
+      basis: lot.basis * (from / to),
+    };
+    newLots.push(newLot);
+  }
+
+  await collection.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        "positions.$[p].lots": newLots,
+      },
+    },
+    {
+      arrayFilters: [
+        {
+          "p.symbol": symbol,
+        },
+      ],
+    }
+  );
+};
+
+export const insertDividend = async (
+  user: Document,
+  symbol: string,
+  date: Date,
+  amount: number,
+  shares: number
+) => {
+  await client.connect();
+  const db = client.db("investments");
+  const collection = db.collection("investors");
+
+  const totalDividend = amount * shares;
+  const newCash = (await getCash(user)) + totalDividend;
+  const newDate = new Date(date);
 
   await collection.updateOne(
     { _id: user._id },
@@ -97,7 +184,7 @@ export const insertDividend = async (user:Document, symbol:string, date:Date, am
           amount: totalDividend,
           cash: newCash,
           symbol,
-          shares
+          shares,
         },
       },
     }
@@ -111,7 +198,7 @@ export const insertDividend = async (user:Document, symbol:string, date:Date, am
       },
     }
   );
-}
+};
 
 export const makeGift = async (user: Document, amount: number) => {
   await client.connect();
@@ -191,7 +278,9 @@ export const getTransactions = async (
       const currentShares: number = currentTransaction.shares;
       const currentCash: number = currentTransaction.cash;
 
-      const currentCommission:number = currentTransaction.commission;
+      const currentCommission: number = currentTransaction.commission;
+      const currentFrom: number = currentTransaction.from;
+      const currentTo: number = currentTransaction.to;
 
       const transaction = {
         symbol: currentSymbol,
@@ -202,10 +291,11 @@ export const getTransactions = async (
         shares: currentShares,
         cash: currentCash,
         commission: currentCommission,
+        from: currentFrom,
+        to: currentTo,
       };
 
       return transaction;
-      //transactionsArray.push(transaction)
     })
   );
 
@@ -290,7 +380,7 @@ export const sellAsset = async (
 ) => {
   try {
     const totalProceeds: number = bidPrice * shares - COMMISSION;
-    await sellPosition(user, tickerSymbol, shares)
+    await sellPosition(user, tickerSymbol, shares);
 
     const cash = user.cash + totalProceeds;
     await client.connect();
@@ -329,7 +419,7 @@ export const createTransaction = async (
   shares: number,
   amount: number,
   cash: number,
-  commission:number
+  commission: number
 ) => {
   await client.connect();
   const db = client.db("investments");
@@ -346,7 +436,7 @@ export const createTransaction = async (
           shares: shares,
           symbol: tickerSymbol,
           cash: cash,
-          commission:commission
+          commission: commission,
         },
       },
     }
@@ -361,7 +451,7 @@ export const sellPosition = async (
   const positions = user.positions;
   // Find the specific position from a ticker, grab the lots, and reverse them.
   const reversedLotsByTicker: Lot[] = positions
-    .filter((position: { symbol: string; }) => {
+    .filter((position: { symbol: string }) => {
       return position.symbol.toUpperCase() === tickerSymbol.toUpperCase();
     })[0]
     .lots.reverse();

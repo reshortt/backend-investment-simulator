@@ -16,14 +16,14 @@ export type SpotPrice = {
 };
 export type HistoricalPrice = { date: Date; price: number };
 
+export type HistoricalData = {prices:HistoricalPrice[], dividends:Dividend[], splits:Split[]}
 
 export type Dividend = {
-  date: Date; price: number
+    date: Date; amount: number
 }
 
-export type HistoricalData = {
-  prices:HistoricalPrice[];
-  dividends:Dividend[];
+export type Split = {
+  date:Date, from:number, to:number
 }
 
 export type UserInfo = {
@@ -48,13 +48,16 @@ export type Transaction = {
   name:string;
   cash:number;
   commission:number;
+  from:number,
+  to:number
 };
 
 export enum TransactionType {
   GIFT = "GIFT",
   BUY="BUY",
   SELL="SELL",
-  DIVIDEND="DIVIDEND"
+  DIVIDEND="DIVIDEND",
+  SPLIT="SPLIT"
 }
 
 export const COMMISSION: number = 15.0;
