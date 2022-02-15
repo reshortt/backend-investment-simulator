@@ -13,7 +13,7 @@ import {
   makeGift,
   sellAsset,
 } from "./mongo";
-import { getPrice, lookupTicker, isValidSymbol, getStockPriceOnDate, cacheHistoricalData } from "./stocks";
+import { getPrice, lookupTicker, isValidSymbol, getStockPriceOnDate, cacheHistoricalData, cacheAllHistoricalData } from "./stocks";
 import { Asset, SpotPrice, Transaction, Account, UserInfo } from "./types";
 import { insertEvents } from "./Calculations";
 
@@ -72,6 +72,7 @@ app.use(express.json());
 
 const server = app.listen(port, () => {
   console.log("backend is running");
+  cacheAllHistoricalData()
 });
 
 router.get("/API/lookupTicker", async (req, res) => {

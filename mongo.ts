@@ -1,4 +1,4 @@
-import { MongoClient, ObjectId, Document, UpdateResult } from "mongodb";
+import { MongoClient, ObjectId, Document, UpdateResult, FindCursor } from "mongodb";
 import { getPrice, lookupTicker } from "./stocks";
 import {
   Asset,
@@ -45,6 +45,26 @@ export const getUserById = async (userId: string): Promise<Document> => {
   }
   return foundUser;
 };
+
+export const  getAllSymbols = async():Promise<Set<string>> => {
+  await client.connect();
+  const db = client.db("investments");
+  const collection = db.collection("investors");
+
+  const symbols:Set<string> = new Set()
+
+  // get all users
+  const cursor:FindCursor<Document> = collection.find({}) 
+  await cursor.forEach((user:Document) => {
+    for (let transaction of user.transactions) {
+      if (transaction.symbol) {
+        symbols.add(transaction.symbol)
+      }
+    }
+  })  
+
+  return symbols
+}
 
 export const getUserByEmail = async (email: string): Promise<Document> => {
   await client.connect();

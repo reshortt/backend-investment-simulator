@@ -1,8 +1,15 @@
+import { getAllSymbols } from "./mongo";
 import { Dividend, HistoricalData, HistoricalPrice, SpotPrice, Split } from "./types";
 
 const yahooStockAPI = require("yahoo-stock-api");
 const yahooHistory = require("yahoo-finance-history");
 const ticker = require("stock-ticker-symbol");
+
+
+const priceMap = new Map<string, HistoricalPrice[]>();
+const dividendMap = new Map<string, Dividend[]>();
+const splitMap = new Map<string, Split[]>();
+const tickersCalculating = new Set<string>();
 
 const getHistoricalData = async (
   tickerSymbol: string
@@ -43,14 +50,17 @@ const getHistoricalData = async (
   }
 
   const splitHistory = await data.splitHistory
-  splitHistory && console.log ("Split History for ", tickerSymbol, ": ", splitHistory)
+  //splitHistory && console.log ("Split History for ", tickerSymbol, ": ", splitHistory)
   const splitHistoryRows: string[] = splitHistory.toString().split("\n");
 
   for (var row = 1; row < splitHistoryRows.length; ++row) {
     const rowString = splitHistoryRows[row];
     const columns: string[] = rowString.split(",");
+    if (!columns || columns.length < 2)
+      continue
     const toFrom:string[] = columns[1].split(":")
-
+    if (!toFrom || toFrom.length < 2)
+      continue
     const split: Split = {
       date: new Date(columns[0]),
       to:Number.parseInt(toFrom[0]),
@@ -124,10 +134,14 @@ export const lookupTicker = async (tickerSymbol: string): Promise<string> => {
   return tickerName;
 };
 
-const priceMap = new Map<string, HistoricalPrice[]>();
-const dividendMap = new Map<string, Dividend[]>();
-const splitMap = new Map<string, Split[]>();
-const tickersCalculating = new Set<string>();
+export const  cacheAllHistoricalData = () => {
+   getAllSymbols().then((symbols) => {
+       symbols.forEach((symbol) => {
+         cacheHistoricalData(symbol)
+       })
+   })
+}
+
 
 export const cacheHistoricalData = (symbol: string) => {
   const prices = priceMap.get(symbol);
