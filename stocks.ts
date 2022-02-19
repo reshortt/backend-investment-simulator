@@ -134,7 +134,14 @@ export const lookupTicker = async (tickerSymbol: string): Promise<string> => {
   return tickerName;
 };
 
+
 export const  cacheAllHistoricalData = () => {
+
+  priceMap.clear()
+  dividendMap.clear()
+  splitMap.clear()
+  tickersCalculating.clear()
+  
    getAllSymbols().then((symbols) => {
        symbols.forEach((symbol) => {
          cacheHistoricalData(symbol)

@@ -9,7 +9,9 @@ import {
   TransactionType,
 } from "./types";
 
-const url = "mongodb://localhost:27017";
+//const url = "mongodb://localhost:27017";
+
+const url = process.env.MONGO_URL
 const client: MongoClient = new MongoClient(url);
 
 const getInvestors = async () => {

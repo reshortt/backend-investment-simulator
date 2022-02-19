@@ -72,7 +72,13 @@ app.use(express.json());
 
 const server = app.listen(port, () => {
   console.log("backend is running");
+
   cacheAllHistoricalData()
+  setInterval(function() {
+      console.log("Starting refresh")
+      cacheAllHistoricalData()
+}, 24*3600*1000); // every day, refresh 
+ 
 });
 
 router.get("/API/lookupTicker", async (req, res) => {
