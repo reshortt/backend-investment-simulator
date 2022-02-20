@@ -27,10 +27,9 @@ export const login = async (
   await client.connect();
   const db = client.db("investments");
   const collection = db.collection("investors");
-  const foundUser = await collection.findOne({
-    email: email,
-    password: password,
-  });
+
+  const findObj = {email, password}
+  const foundUser = await collection.findOne(findObj);
   if (foundUser == null || foundUser === undefined) return null;
   return foundUser;
 };
@@ -149,22 +148,29 @@ export const insertSplit = async (
   );
 
 
-  const originalLots: Lot[] = user.positions.filter(
+  const originalLots: Lot[] = (await getUserById(user._id)).positions.filter(
     (position: { symbol: string }) => {
       return position.symbol.toUpperCase() === symbol.toUpperCase();
     }
   )[0].lots;
 
+  console.log("Original lots before split: ", JSON.stringify(originalLots))
+
   const newLots: Lot[] = [];
   for (let lot of originalLots) {
+    console.log("splitting ", symbol, " from ", lot.shares, " to ", lot.shares * (to / from))
     const newLot: Lot = {
-      shares: lot.shares * (to / from),
-      basis: lot.basis * (from / to),
+      shares: Math.floor(lot.shares * (to / from)),
+      basis: lot.basis * (from / to)
     };
     newLots.push(newLot);
   }
 
-  await collection.updateOne(
+  console.log("pushing new lots ", JSON.stringify(newLots))
+
+  
+
+  const results:UpdateResult = await collection.updateOne(
     { _id: user._id },
     {
       $set: {
@@ -174,11 +180,22 @@ export const insertSplit = async (
     {
       arrayFilters: [
         {
-          "p.symbol": symbol,
+          "p.symbol": symbol.toUpperCase(),
         },
       ],
     }
   );
+
+  console.log("Results of Update: ", JSON.stringify(results))
+
+  const updatedLots: Lot[] = await (await getUserById(user._id)).positions.filter(
+    (position: { symbol: string }) => {
+      return position.symbol.toUpperCase() === symbol.toUpperCase();
+    }
+  )[0].lots;
+
+  console.log("New lots after split: ", JSON.stringify(updatedLots))
+
 };
 
 export const insertDividend = async (

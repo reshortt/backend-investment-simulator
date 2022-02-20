@@ -23,7 +23,7 @@ export const getQuantity = async (
 const adjustForSplits = (startDate:Date, endDate:Date, shares:number, splits:Split[]):number => {
     for (let split of splits) {
         if (split.date > startDate && split.date < endDate)
-            shares = shares * (split.to/split.from)
+            shares = Math.floor(shares * (split.to/split.from))
     }
     return shares
 }

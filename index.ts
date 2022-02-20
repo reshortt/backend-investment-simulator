@@ -13,8 +13,8 @@ import {
   makeGift,
   sellAsset,
 } from "./mongo";
-import { getPrice, lookupTicker, isValidSymbol, getStockPriceOnDate, cacheHistoricalData, cacheAllHistoricalData } from "./stocks";
-import { Asset, SpotPrice, Transaction, Account, UserInfo } from "./types";
+import { getPrice, lookupTicker, isValidSymbol, getStockPriceOnDate, cacheHistoricalData, cacheAllHistoricalData, getHistoricalPrices } from "./stocks";
+import { Asset, SpotPrice, Transaction, Account, UserInfo, HistoricalData, HistoricalPrice } from "./types";
 import { insertEvents } from "./Calculations";
 
 global.fetch = require("node-fetch");
@@ -36,7 +36,7 @@ router.post("/login", express.json(), async (req, res) => {
   const foundUser: Document = await login(email, password);
   if (!foundUser) {
     const msg: string = "Invalid Credentials";
-    console.log("Invaid creds")
+    console.log("Invalid creds")
     res.status(400).send(msg);
     return
   }
@@ -291,6 +291,22 @@ router.get("/API/getStockPriceOnDate", async (req, res) => {
 
   //console.log("Price for ", symbol, " on ", date, ": ", price)
   res.status(200).send ({price})
+})
+
+router.get("/API/getHistoricalPrices", async (req, res) => {
+  const foundUser = await verifyUser(req, res);
+  if (!foundUser) return;
+
+  const startDate: Date = new Date(req.query.date.toString());
+  const symbol:string = req.query.ticker.toString()
+  const prices:HistoricalPrice[] =  await getHistoricalPrices(symbol, startDate)
+  
+  if (prices) {
+      res.status(200).send(JSON.stringify(prices))
+  }
+  else {
+      res.status(400).send("Unable to get price history for " + symbol)
+  }
 })
 
 router.get("/API/buyAsset", async (req, res) => {

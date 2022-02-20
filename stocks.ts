@@ -1,10 +1,15 @@
 import { getAllSymbols } from "./mongo";
-import { Dividend, HistoricalData, HistoricalPrice, SpotPrice, Split } from "./types";
+import {
+  Dividend,
+  HistoricalData,
+  HistoricalPrice,
+  SpotPrice,
+  Split,
+} from "./types";
 
 const yahooStockAPI = require("yahoo-stock-api");
 const yahooHistory = require("yahoo-finance-history");
 const ticker = require("stock-ticker-symbol");
-
 
 const priceMap = new Map<string, HistoricalPrice[]>();
 const dividendMap = new Map<string, Dividend[]>();
@@ -14,7 +19,6 @@ const tickersCalculating = new Set<string>();
 const getHistoricalData = async (
   tickerSymbol: string
 ): Promise<HistoricalData> => {
-
   const prices: HistoricalPrice[] = [];
   const dividends: Dividend[] = [];
   const splits: Split[] = [];
@@ -49,28 +53,37 @@ const getHistoricalData = async (
     dividends.push(dividend);
   }
 
-  const splitHistory = await data.splitHistory
+  const splitHistory = await data.splitHistory;
   //splitHistory && console.log ("Split History for ", tickerSymbol, ": ", splitHistory)
   const splitHistoryRows: string[] = splitHistory.toString().split("\n");
 
   for (var row = 1; row < splitHistoryRows.length; ++row) {
     const rowString = splitHistoryRows[row];
     const columns: string[] = rowString.split(",");
-    if (!columns || columns.length < 2)
-      continue
-    const toFrom:string[] = columns[1].split(":")
-    if (!toFrom || toFrom.length < 2)
-      continue
+    if (!columns || columns.length < 2) continue;
+    const toFrom: string[] = columns[1].split(":");
+    if (!toFrom || toFrom.length < 2) continue;
     const split: Split = {
       date: new Date(columns[0]),
-      to:Number.parseInt(toFrom[0]),
-      from:Number.parseInt(toFrom[1])
+      to: Number.parseInt(toFrom[0]),
+      from: Number.parseInt(toFrom[1]),
     };
     splits.push(split);
   }
 
-  return {prices,dividends,splits}
+  return { prices, dividends, splits };
 };
+
+export const getHistoricalPrices = async (symbol:string, startDate:Date):Promise<HistoricalPrice[]> => {
+   const data = await cacheHistoricalData(symbol);
+   const prices:HistoricalPrice[] = [];
+
+   for (let price of priceMap.get(symbol)) {
+     if (price.date >= startDate)
+        prices.push(price)
+   }
+   return prices
+}
 
 export const getPrice = async (
   tickerSymbol: string
@@ -83,7 +96,7 @@ export const getPrice = async (
     return undefined;
   }
 
-  const previousClose: number = stockInfo.response.previousClose;
+  const previousClose: number = stockInfo.response?.previousClose
 
   // bid
   const bidString: string = stockInfo.response.bid
@@ -134,43 +147,39 @@ export const lookupTicker = async (tickerSymbol: string): Promise<string> => {
   return tickerName;
 };
 
+export const cacheAllHistoricalData = () => {
+  priceMap.clear();
+  dividendMap.clear();
+  splitMap.clear();
+  tickersCalculating.clear();
 
-export const  cacheAllHistoricalData = () => {
+  getAllSymbols().then((symbols) => {
+    symbols.forEach((symbol) => {
+      cacheHistoricalData(symbol);
+    });
+  });
+};
 
-  priceMap.clear()
-  dividendMap.clear()
-  splitMap.clear()
-  tickersCalculating.clear()
-  
-   getAllSymbols().then((symbols) => {
-       symbols.forEach((symbol) => {
-         cacheHistoricalData(symbol)
-       })
-   })
-}
-
-
-export const cacheHistoricalData = (symbol: string) => {
+export const cacheHistoricalData = async (symbol: string) => {
   const prices = priceMap.get(symbol);
   if (prices === undefined || prices == null) {
     if (!tickersCalculating.has(symbol)) {
-      tickersCalculating.add(symbol)
+      tickersCalculating.add(symbol);
       console.log("Caching History for " + symbol + "...");
-      getHistoricalData(symbol).then((data:HistoricalData) => {
-        priceMap.set(symbol, data.prices);
-        dividendMap.set(symbol, data.dividends)
-        splitMap.set(symbol, data.splits)
-        console.log(
-          "Finished Caching History for ",
-          symbol,
-          " Prices: ",
-          data.prices.length,
-          ", Dividends: ",
-          data.dividends.length,
-          ", Splits: ",
-          data.splits.length,
-        );
-      });
+      const data: HistoricalData = await getHistoricalData(symbol);
+      priceMap.set(symbol, data.prices);
+      dividendMap.set(symbol, data.dividends);
+      splitMap.set(symbol, data.splits);
+      console.log(
+        "Finished Caching History for ",
+        symbol,
+        " Prices: ",
+        data.prices.length,
+        ", Dividends: ",
+        data.dividends.length,
+        ", Splits: ",
+        data.splits.length
+      );
     }
   }
 };
@@ -196,8 +205,8 @@ export const getStockPriceOnDate = async (
   let targetDate: Date = new Date(date);
 
   // brute force march from end to beginning
-  for (let i = priceHistory.length-1; i >=0; --i) {
-    const historicalPrice:HistoricalPrice = priceHistory[i]
+  for (let i = priceHistory.length - 1; i >= 0; --i) {
+    const historicalPrice: HistoricalPrice = priceHistory[i];
     let priceDate: Date = new Date(historicalPrice.date);
 
     if (lastPrice && priceDate < targetDate) {
@@ -209,23 +218,30 @@ export const getStockPriceOnDate = async (
   return lastPrice;
 };
 
-export const getHistoricalEvents = async (symbol:string):Promise<{dividends:Dividend[], splits: Split[]}> => {
-  let dividends:Dividend[] = dividendMap.get(symbol)
-  let splits:Split[] = splitMap.get(symbol)
+export const getHistoricalEvents = async (
+  symbol: string
+): Promise<{ dividends: Dividend[]; splits: Split[] }> => {
+  let dividends: Dividend[] = dividendMap.get(symbol);
+  let splits: Split[] = splitMap.get(symbol);
 
   // if dividends
-  if (!dividends || !splits || dividends === undefined || splits === undefined ) {
-    console.log("(b) Getting Dividend and Spllit History for " + symbol + "...");
-    const historicalData = await getHistoricalData(symbol)
-    dividends = historicalData.dividends
-    splits = historicalData.splits
+  if (
+    !dividends ||
+    !splits ||
+    dividends === undefined ||
+    splits === undefined
+  ) {
+    console.log(
+      "(b) Getting Dividend and Spllit History for " + symbol + "..."
+    );
+    const historicalData = await getHistoricalData(symbol);
+    dividends = historicalData.dividends;
+    splits = historicalData.splits;
 
-    if (!dividends || dividends === undefined)
-      dividends = []
-    if (!splits || splits === undefined)
-      splits = []
+    if (!dividends || dividends === undefined) dividends = [];
+    if (!splits || splits === undefined) splits = [];
     dividendMap.set(symbol, dividends);
-    splitMap.set(symbol, splits)
+    splitMap.set(symbol, splits);
 
     console.log(
       "(b) Finished getting Dividend and Split History for ",
@@ -234,5 +250,5 @@ export const getHistoricalEvents = async (symbol:string):Promise<{dividends:Divi
       dividends.length
     );
   }
-  return {dividends, splits}
-}
+  return { dividends, splits };
+};
