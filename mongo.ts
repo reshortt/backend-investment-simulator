@@ -166,7 +166,7 @@ export const insertSplit = async (
     newLots.push(newLot);
   }
 
-  console.log("pushing new lots ", JSON.stringify(newLots))
+  //console.log("pushing new lots ", JSON.stringify(newLots))
 
   
 
@@ -186,7 +186,7 @@ export const insertSplit = async (
     }
   );
 
-  console.log("Results of Update: ", JSON.stringify(results))
+  //console.log("Results of Update: ", JSON.stringify(results))
 
   const updatedLots: Lot[] = await (await getUserById(user._id)).positions.filter(
     (position: { symbol: string }) => {
@@ -194,7 +194,7 @@ export const insertSplit = async (
     }
   )[0].lots;
 
-  console.log("New lots after split: ", JSON.stringify(updatedLots))
+  //console.log("New lots after split: ", JSON.stringify(updatedLots))
 
 };
 

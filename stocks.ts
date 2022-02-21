@@ -46,7 +46,7 @@ const getHistoricalData = async (
 
     const rowString = dividendHistoryRows[row];
     const columns: string[] = rowString.split(",");
-    
+
     if (columns.length < 2)
       continue
     const dividend: Dividend = {
