@@ -24,8 +24,15 @@ const jwt = require("jsonwebtoken");
 const port: number = 3005;
 
 const router: express.Router = express.Router();
+const Hashes = require("jshashes");
+const MD5 = new Hashes.MD5();
 
-router.post("/login", express.json(), async (req, res) => {
+function hashPassword (req, res, next) {
+  req.body.password =  MD5.hex(res.body.password)
+  next()
+}
+
+router.post("/login", express.json(), hashPassword, async (req, res) => {
   const password: string = req.body.password;
   const email: string = req.body.email;
 
@@ -131,7 +138,7 @@ router.get("/API/getStockPrice", async (req, res) => {
   res.status(200).send(await getPrice(tickerSymbol));
 });
 
-router.post("/signup", express.json(), async (req, res) => {
+router.post("/signup", express.json(), hashPassword, async (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   const name = req.body.name;
