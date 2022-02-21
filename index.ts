@@ -78,6 +78,11 @@ app.options("*", cors());
 app.use("/", router);
 app.use(express.json());
 
+// let server = https.createServer({
+//   cert: 
+// }, app).listen(443)
+
+
 const server = app.listen(port, () => {
   console.log("backend is running");
 
@@ -88,6 +93,21 @@ const server = app.listen(port, () => {
 }, 24*3600*1000); // every day, refresh 
  
 });
+
+/*
+const express = require('express')
+const http = require('http')
+const app = express()
+
+http.createServer(app).listen(80)
+https.createServer(options, app).listen(443)
+The app.listen() method returns an http.Server object and (for HTTP) is a convenience method for the following:
+
+app.listen = function () {
+  const server = http.createServer(this)
+  return server.listen.apply(server, arguments)
+}
+*/
 
 router.get("/API/lookupTicker", async (req, res) => {
   //console.log(" Lookup Ticker Called on ", req.query, " and req= ", req)
