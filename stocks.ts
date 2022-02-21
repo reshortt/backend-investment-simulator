@@ -30,7 +30,6 @@ const getHistoricalData = async (
 
   for (var row = 1; row < priceHistoryRows.length; ++row) {
     const rowString = priceHistoryRows[row];
-    //console.log(rowString);
     const columns: string[] = rowString.split(",");
     const price: HistoricalPrice = {
       date: new Date(columns[0]),
@@ -44,8 +43,12 @@ const getHistoricalData = async (
   const dividendHistoryRows: string[] = dividendHistory.toString().split("\n");
 
   for (var row = 1; row < dividendHistoryRows.length; ++row) {
+
     const rowString = dividendHistoryRows[row];
     const columns: string[] = rowString.split(",");
+    
+    if (columns.length < 2)
+      continue
     const dividend: Dividend = {
       date: new Date(columns[0]),
       amount: Number(columns[1]),
@@ -148,6 +151,9 @@ export const lookupTicker = async (tickerSymbol: string): Promise<string> => {
 };
 
 export const cacheAllHistoricalData = () => {
+  
+  console.log("-------------------- Retreiving Al Historical Data at ", Date.now().toString(), "--------------------")
+
   priceMap.clear();
   dividendMap.clear();
   splitMap.clear();

@@ -20,9 +20,9 @@ export const getQuantity = async (
   return count;
 };
 
-const adjustForSplits = (startDate:Date, endDate:Date, shares:number, splits:Split[]):number => {
+const adjustForSplits = (startDate:Date,  shares:number, splits:Split[]):number => {
     for (let split of splits) {
-        if (split.date > startDate && split.date < endDate)
+        if (split.date > startDate)
             shares = Math.floor(shares * (split.to/split.from))
     }
     return shares
@@ -61,15 +61,15 @@ export const insertEvents = async (
       if (dividend.date > startDate) {
         console.log("Found dividend for ", asset.stock.symbol, ": ", dividend);
         const shares: number = await getQuantity(user, asset.stock.symbol);
-        const adjustedShares = adjustForSplits(startDate, dividend.date, shares, events.splits)
+        const adjustedShares = adjustForSplits(startDate,  shares, events.splits)
         
         const amount: number = dividend.amount;
         const data: DividendData = {
           type: DIVIDEND,
           symbol: asset.stock.symbol,
           date: dividend.date,
-          amount,
-          shares:adjustedShares,
+          amount: amount * (adjustedShares/shares),
+          shares:shares,
         };
         eventData.push(data);
       }

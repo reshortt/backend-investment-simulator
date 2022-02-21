@@ -1,4 +1,5 @@
 import express = require("express");
+import https = require ("https")
 import cors = require("cors");
 import { Document } from "mongodb";
 import {
@@ -14,7 +15,7 @@ import {
   sellAsset,
 } from "./mongo";
 import { getPrice, lookupTicker, isValidSymbol, getStockPriceOnDate, cacheHistoricalData, cacheAllHistoricalData, getHistoricalPrices } from "./stocks";
-import { Asset, SpotPrice, Transaction, Account, UserInfo, HistoricalData, HistoricalPrice } from "./types";
+import { Asset, SpotPrice, Transaction, Account, UserInfo, HistoricalPrice } from "./types";
 import { insertEvents } from "./Calculations";
 
 global.fetch = require("node-fetch");
