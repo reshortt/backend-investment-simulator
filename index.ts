@@ -348,5 +348,5 @@ router.get("/API/sellAsset", async (req, res) => {
 });
 
 router.get("/info", (req, res) => {
-  res.status(200).end({time: (new Date()).toISOString(), status: 'ok'});
+  res.status(200).json({time: (new Date()).toISOString(), status: 'ok'});
 });
