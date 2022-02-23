@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon -r dotenv/config ./index.ts",
-    "start-pm2": "pm2 stop backend-investment-simulator; pm2 delete backend-investment-simulator; pm2 start --name backend-investment-simulator npm -- run start",
+    "start-app": "ts-node -r dotenv/config ./index.ts",
+    "start-pm2": "pm2 stop backend-investment-simulator; pm2 delete backend-investment-simulator; pm2 start --name backend-investment-simulator npm -- run start-app",
     "stop-pm2": "pm2 stop backend-investment-simulator; pm2 delete backend-investment-simulator"
   },
   "repository": {
