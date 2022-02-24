@@ -18,15 +18,28 @@ const tickersCalculating = new Set<string>();
 
 const getHistoricalData = async (
   tickerSymbol: string
-): Promise<HistoricalData> => {
+): Promise<HistoricalData|null> => {
   const prices: HistoricalPrice[] = [];
   const dividends: Dividend[] = [];
   const splits: Split[] = [];
 
   const data = await yahooHistory.getPriceHistory(tickerSymbol);
+  if (!data) {
+    console.log("Unable to get historical data for: ", tickerSymbol)
+    return null
+  }
 
   const priceHistory = await data.priceHistory;
+  if (!priceHistory) {
+    console.log("Unable to get price history for: ", tickerSymbol)
+    return null
+  }
   const priceHistoryRows: string[] = priceHistory.toString().split("\n");
+
+  if (!priceHistoryRows) {
+    console.log("Unable to parse price history for: ", tickerSymbol, priceHistory.toString())
+    return null
+  }
 
   for (var row = 1; row < priceHistoryRows.length; ++row) {
     const rowString = priceHistoryRows[row];
