@@ -94,8 +94,8 @@ export const getPrice = async (
   if (!tickerSymbol) return undefined;
   const stockInfo = await yahooStockAPI.getSymbol(tickerSymbol);
   //console.log("stock info for ", tickerSymbol, " is ", companyName);
-  if (!stockInfo) {
-    console.log("No stock info for ", tickerSymbol, " : ", stockInfo);
+  if (!stockInfo || !stockInfo.response) {
+    console.log("No stock info for ", tickerSymbol, " : ", JSON.stringify(stockInfo));
     return undefined;
   }
 
@@ -144,9 +144,13 @@ export const isValidSymbol = async (tickerSymbol: string): Promise<boolean> => {
 };
 
 export const lookupTicker = async (tickerSymbol: string): Promise<string> => {
-  if (!tickerSymbol) return "";
+  console.log("Looking up Ticker: ", tickerSymbol)
+  if (!tickerSymbol)  {
+    console.log("No such ticker exists: ", tickerSymbol)
+    return "";
+  }
   const tickerName: string = await ticker.lookup(tickerSymbol);
-  //console.log("TICKER LOOOKUP: ", tickerSymbol, "->", tickerName);
+  console.log("TICKER LOOOKUP: ", tickerSymbol, "->", tickerName);
   return tickerName;
 };
 
