@@ -1,5 +1,5 @@
 import express = require("express");
-import https = require ("https")
+import https = require("https");
 import cors = require("cors");
 import { Document } from "mongodb";
 import {
@@ -14,8 +14,23 @@ import {
   makeGift,
   sellAsset,
 } from "./mongo";
-import { getPrice, lookupTicker, isValidSymbol, getStockPriceOnDate, cacheHistoricalData, cacheAllHistoricalData, getHistoricalPrices } from "./stocks";
-import { Asset, SpotPrice, Transaction, Account, UserInfo, HistoricalPrice } from "./types";
+import {
+  getPrice,
+  lookupTicker,
+  isValidSymbol,
+  getStockPriceOnDate,
+  cacheHistoricalData,
+  cacheAllHistoricalData,
+  getHistoricalPrices,
+} from "./stocks";
+import {
+  Asset,
+  SpotPrice,
+  Transaction,
+  Account,
+  UserInfo,
+  HistoricalPrice,
+} from "./types";
 import { insertEvents } from "./Calculations";
 
 global.fetch = require("node-fetch");
@@ -37,30 +52,28 @@ router.post("/API/login", express.json(), async (req, res) => {
   const foundUser: Document = await login(email, password);
   if (!foundUser) {
     const msg: string = "Invalid Credentials";
-    console.log("Invalid creds")
+    console.log("Invalid creds");
     res.status(400).send(msg);
-    return
+    return;
   }
 
   const token = jwt.sign({ userId: foundUser._id }, process.env.JWT_SECRET, {
     expiresIn: 200000, // TODO: go back to 2s
   });
 
-  
-  const transactions = await getTransactions(foundUser)
+  const transactions = await getTransactions(foundUser);
 
   // should always be true cuz of initial deposit, but whatevs
   if (transactions.length > 0) {
-
     // only look at dividends since last transaction
-    const startDate:Date = transactions[transactions.length - 1].date
-    await insertEvents(foundUser, await getAssets(foundUser), startDate)
+    const startDate: Date = transactions[transactions.length - 1].date;
+    await insertEvents(foundUser, await getAssets(foundUser), startDate);
   }
 
   const replyObject = {
     token,
     email: foundUser.email,
-    userName: foundUser.name
+    userName: foundUser.name,
   };
   res.status(200).send(replyObject);
 });
@@ -74,12 +87,11 @@ app.use(express.json());
 const server = app.listen(port, () => {
   console.log("backend is running");
 
-  cacheAllHistoricalData()
-  setInterval(function() {
-      console.log("Starting refresh")
-      cacheAllHistoricalData()
-}, 24*3600*1000); // every day, refresh 
- 
+  cacheAllHistoricalData();
+  setInterval(function () {
+    console.log("Starting refresh of cache at ", new Date(Date.now()).toDateString());
+    cacheAllHistoricalData();
+  }, 24 * 3600 * 1000); // every day, refresh
 });
 
 router.get("/API/lookupTicker", async (req, res) => {
@@ -173,31 +185,28 @@ router.get("/API/getUserInfo", async (req, res) => {
 });
 
 router.get("/API/getAccount", async (req, res) => {
-
   const foundUser = await verifyUser(req, res);
   if (!foundUser) {
-   // console.log("Can'f find user");
-     res.status(500).json({});
+    // console.log("Can'f find user");
+    res.status(500).json({});
   }
- // console.log ("verified user ")
+  // console.log ("verified user ")
 
-  const lookupAssets = async (user:Document):Promise<Asset[]> => {
-      const assets:Asset[] = await getAssets(user);
-      for (let asset of assets) {
-        cacheHistoricalData(asset.stock.symbol)
-      }
-      return assets
-  }
-
-
-  const lookupTransactions = async (user:Document):Promise<Transaction[]> => {
-    const transactions:Transaction[] = await getTransactions(user);
-    for (let transaction of transactions) {
-      if (transaction.symbol)
-        cacheHistoricalData(transaction.symbol)
+  const lookupAssets = async (user: Document): Promise<Asset[]> => {
+    const assets: Asset[] = await getAssets(user);
+    for (let asset of assets) {
+      cacheHistoricalData(asset.stock.symbol);
     }
-    return transactions
-}
+    return assets;
+  };
+
+  const lookupTransactions = async (user: Document): Promise<Transaction[]> => {
+    const transactions: Transaction[] = await getTransactions(user);
+    for (let transaction of transactions) {
+      if (transaction.symbol) cacheHistoricalData(transaction.symbol);
+    }
+    return transactions;
+  };
 
   const account: Account = {
     info: {
@@ -246,15 +255,14 @@ router.get("/API/getBalance", async (req, res) => {
 
 const verifyUser = async (req, res): Promise<Document> => {
   const token = req.headers.authorization.split(" ")[1];
-  let payload, foundUser
+  let payload, foundUser;
   try {
-     payload = await jwt.verify(token, process.env.JWT_SECRET);
+    payload = await jwt.verify(token, process.env.JWT_SECRET);
+  } catch (e) {
+    // TODO: send token expiry notice
+    return null;
   }
-  catch (e) {
-      // TODO: send token expiry notice
-      return null
-  }
-   foundUser = await getUserById(payload.userId);
+  foundUser = await getUserById(payload.userId);
   return foundUser;
 };
 
@@ -287,28 +295,30 @@ router.get("/API/getStockPriceOnDate", async (req, res) => {
   if (!foundUser) return;
 
   const date: Date = new Date(req.query.date.toString());
-  const symbol:string = req.query.ticker.toString()
-  const price = await (getStockPriceOnDate(symbol, date))
+  const symbol: string = req.query.ticker.toString();
+  const price = await getStockPriceOnDate(symbol, date);
 
   //console.log("Price for ", symbol, " on ", date, ": ", price)
-  res.status(200).send ({price})
-})
+  res.status(200).send({ price });
+});
 
 router.get("/API/getHistoricalPrices", async (req, res) => {
   const foundUser = await verifyUser(req, res);
   if (!foundUser) return;
 
   const startDate: Date = new Date(req.query.date.toString());
-  const symbol:string = req.query.ticker.toString()
-  const prices:HistoricalPrice[] =  await getHistoricalPrices(symbol, startDate)
-  
+  const symbol: string = req.query.ticker.toString();
+  const prices: HistoricalPrice[] = await getHistoricalPrices(
+    symbol,
+    startDate
+  );
+
   if (prices) {
-      res.status(200).send(JSON.stringify(prices))
+    res.status(200).send(JSON.stringify(prices));
+  } else {
+    res.status(400).send("Unable to get price history for " + symbol);
   }
-  else {
-      res.status(400).send("Unable to get price history for " + symbol)
-  }
-})
+});
 
 router.get("/API/buyAsset", async (req, res) => {
   const foundUser = await verifyUser(req, res);
@@ -319,12 +329,14 @@ router.get("/API/buyAsset", async (req, res) => {
   const price = Number(req.query.price.toString());
   const purchaseResult = await buyAsset(foundUser, tickerSymbol, shares, price);
   if (purchaseResult) {
-    getCash(foundUser).then((cash)=>{
-      res.status(200).send({cash});
-    },(rejection)=>{
-      res.status(500).send({rejected: rejection})
-    }
-    )
+    getCash(foundUser).then(
+      (cash) => {
+        res.status(200).send({ cash });
+      },
+      (rejection) => {
+        res.status(500).send({ rejected: rejection });
+      }
+    );
   } else {
     res.status(500).send("");
   }
@@ -348,5 +360,5 @@ router.get("/API/sellAsset", async (req, res) => {
 });
 
 router.get("/info", (req, res) => {
-  res.status(200).json({time: (new Date()).toISOString(), status: 'ok'});
+  res.status(200).json({ time: new Date().toISOString(), status: "ok" });
 });

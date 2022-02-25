@@ -23,7 +23,8 @@ const getHistoricalData = async (
   const dividends: Dividend[] = [];
   const splits: Split[] = [];
 
-  const data = await yahooHistory.getPriceHistory(tickerSymbol);
+  console.log("Getting Price History for ", tickerSymbol)
+  const data = await yahooHistory.getPriceHistory(tickerSymbol)
   if (!data) {
     console.log("Unable to get historical data for: ", tickerSymbol)
     return null
@@ -169,7 +170,7 @@ export const lookupTicker = async (tickerSymbol: string): Promise<string> => {
 
 export const cacheAllHistoricalData = () => {
   
-  console.log("-------------------- Retreiving Al Historical Data at ", Date.now().toString(), "--------------------")
+  console.log("-------------------- Retreiving All Historical Data at ", new Date(Date.now()).toDateString(), "--------------------")
 
   priceMap.clear();
   dividendMap.clear();
