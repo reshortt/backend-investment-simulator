@@ -31,7 +31,7 @@ import {
   UserInfo,
   HistoricalPrice,
 } from "./types";
-import { insertEvents } from "./Calculations";
+import { insertDividendsAndSplits } from "./Calculations";
 
 global.fetch = require("node-fetch");
 const jwt = require("jsonwebtoken");
@@ -44,11 +44,6 @@ router.post("/API/login", express.json(), async (req, res) => {
   const password: string = req.body.password;
   const email: string = req.body.email;
 
-  // if (!getUserByEmail(email)) {
-  //   console.log("never heard of user: ", req.body.email);
-  //   res.status(401).send("Invalid Username");
-  // }
-
   const foundUser: Document = await login(email, password);
   if (!foundUser) {
     const msg: string = "Invalid Credentials";
@@ -58,16 +53,15 @@ router.post("/API/login", express.json(), async (req, res) => {
   }
 
   const token = jwt.sign({ userId: foundUser._id }, process.env.JWT_SECRET, {
-    expiresIn: 200000, // TODO: go back to 2s
+    expiresIn: 20 * 60, 
   });
 
   const transactions = await getTransactions(foundUser);
 
-  // should always be true cuz of initial deposit, but whatevs
+  // insert dividends and splits since last transaction
   if (transactions.length > 0) {
-    // only look at dividends since last transaction
     const startDate: Date = transactions[transactions.length - 1].date;
-    await insertEvents(foundUser, await getAssets(foundUser), startDate);
+    await insertDividendsAndSplits(foundUser, await getAssets(foundUser), startDate);
   }
 
   const replyObject = {

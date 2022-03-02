@@ -31,7 +31,7 @@ const adjustForSplits = (startDate:Date,  shares:number, splits:Split[]):number 
 const DIVIDEND = "dividend";
 const SPLIT = "split";
 
-export const insertEvents = async (
+export const insertDividendsAndSplits = async (
   user: Document,
   assets: Asset[],
   startDate: Date
