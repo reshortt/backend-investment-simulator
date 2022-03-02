@@ -24,13 +24,20 @@ const getHistoricalData = async (
   const splits: Split[] = [];
 
   console.log("Getting Price History for ", tickerSymbol)
-  const data = await yahooHistory.getPriceHistory(tickerSymbol)
+  let data
+  try {
+     data = await yahooHistory.getPriceHistory(tickerSymbol)
+  }
+  catch (e:any) {
+    console.log("Unable to get historical data for: ", tickerSymbol, ": ", e.toString())
+    return null
+  }
   if (!data) {
     console.log("Unable to get historical data for: ", tickerSymbol)
     return null
   }
 
-  const priceHistory = await data.priceHistory;
+  const priceHistory = data.priceHistory;
   if (!priceHistory) {
     console.log("Unable to get price history for: ", tickerSymbol)
     return null
@@ -42,14 +49,20 @@ const getHistoricalData = async (
     return null
   }
 
+  let lastKnownPrice:number = 0
   for (var row = 1; row < priceHistoryRows.length; ++row) {
     const rowString = priceHistoryRows[row];
     const columns: string[] = rowString.split(",");
-    const price: HistoricalPrice = {
+    let price:number = Number(columns[3])
+    if (!price)
+      price = lastKnownPrice
+    else
+      lastKnownPrice = price
+    const historicalPrice: HistoricalPrice = {
       date: new Date(columns[0]),
-      price: Number(columns[3]),
+      price: price
     };
-    prices.push(price);
+    prices.push(historicalPrice);
   }
 
   const dividendHistory = await data.dividendHistory;
@@ -101,6 +114,7 @@ export const getHistoricalPrices = async (symbol:string, startDate:Date):Promise
    }
    return prices
 }
+ 
 
 export const getPrice = async (
   tickerSymbol: string
@@ -110,7 +124,13 @@ export const getPrice = async (
   //console.log("stock info for ", tickerSymbol, " is ", companyName);
   if (!stockInfo || !stockInfo.response) {
     console.log("No stock info for ", tickerSymbol, " : ", JSON.stringify(stockInfo));
-    return undefined;
+    const data:HistoricalData = await getHistoricalData(tickerSymbol)
+    if (!data || !data.prices) {
+      console.log("No historical data for  ", tickerSymbol, " - returning 0");
+      return {ask:0, bid:0, previousClose:0}
+    }
+    const latest:HistoricalPrice = data.prices[data.prices.length-1]
+    return {ask:latest.price, bid:latest.price, previousClose:latest.price};
   }
 
   const previousClose: number = stockInfo.response?.previousClose
@@ -170,7 +190,7 @@ export const lookupTicker = async (tickerSymbol: string): Promise<string> => {
 
 export const cacheAllHistoricalData = () => {
   
-  console.log("-------------------- Retreiving All Historical Data at ", new Date(Date.now()).toDateString(), "--------------------")
+  console.log("-------------------- Retreiving All Historical Data at ", new Date(Date.now()).toTimeString(), "--------------------")
 
   priceMap.clear();
   dividendMap.clear();
@@ -204,6 +224,7 @@ export const cacheHistoricalData = async (symbol: string) => {
         ", Splits: ",
         data.splits.length
       );
+      tickersCalculating.delete(symbol)
     }
   }
 };
