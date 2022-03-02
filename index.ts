@@ -53,7 +53,7 @@ router.post("/API/login", express.json(), async (req, res) => {
   }
 
   const token = jwt.sign({ userId: foundUser._id }, process.env.JWT_SECRET, {
-    expiresIn: 20 * 60, 
+    expiresIn: 20 * 60 * 1000, 
   });
 
   // insert dividends and splits since last transaction
