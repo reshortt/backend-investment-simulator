@@ -1,11 +1,13 @@
 import {
+  getAssets,
   getLots,
+  getTransactions,
   insertDividend,
   insertSplit,
 } from "./mongo";
 import { Document } from "mongodb";
 import { getHistoricalEvents } from "./stocks";
-import { Dividend, Asset, Split, Lot } from "./types";
+import { Dividend, Asset, Split, Lot, Transaction } from "./types";
 
 // TODO: make this a dedicated query in mongo.ts instead of getting all assets
 export const getQuantity = async (
@@ -32,9 +34,7 @@ const DIVIDEND = "dividend";
 const SPLIT = "split";
 
 export const insertDividendsAndSplits = async (
-  user: Document,
-  assets: Asset[],
-  startDate: Date
+  user: Document
 ) => {
   type DividendData = {
     type: string;
@@ -52,6 +52,12 @@ export const insertDividendsAndSplits = async (
   };
 
   const eventData: (DividendData | SplitData)[] = [];
+
+  const transactions:Transaction[] = await getTransactions(user);
+  if (transactions.length == 0)
+    return
+  const startDate: Date = transactions[transactions.length - 1].date;
+  const assets =await(getAssets(user))
 
   for (let asset of assets) {
     const events: { dividends: Dividend[]; splits: Split[] } =

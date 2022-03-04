@@ -56,12 +56,7 @@ router.post("/API/login", express.json(), async (req, res) => {
     expiresIn: 20 * 60 * 1000, 
   });
 
-  // insert dividends and splits since last transaction
-  const transactions = await getTransactions(foundUser);
-  if (transactions.length > 0) {
-    const startDate: Date = transactions[transactions.length - 1].date;
-    await insertDividendsAndSplits(foundUser, await getAssets(foundUser), startDate);
-  }
+  insertDividendsAndSplits(foundUser)
 
   const replyObject = {
     token,
