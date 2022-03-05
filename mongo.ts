@@ -415,7 +415,8 @@ export const sellAsset = async (
   user: Document,
   tickerSymbol: string,
   shares: number,
-  bidPrice: number
+  bidPrice: number,
+  date:Date = new Date (Date.now())
 ) => {
   try {
     const totalProceeds: number = bidPrice * shares - COMMISSION;
@@ -432,7 +433,8 @@ export const sellAsset = async (
       shares,
       totalProceeds,
       cash,
-      COMMISSION
+      COMMISSION,
+      date
     );
 
     await collection.updateOne(
@@ -454,11 +456,12 @@ export const sellAsset = async (
 export const createTransaction = async (
   user: Document,
   type: TransactionType,
-  tickerSymbol: string,
+  symbol: string,
   shares: number,
   amount: number,
   cash: number,
-  commission: number
+  commission: number,
+  date: Date = new Date (Date.now())
 ) => {
   await client.connect();
   const db = client.db("investments");
@@ -469,13 +472,13 @@ export const createTransaction = async (
     {
       $push: {
         transactions: {
-          date: new Date(),
-          type: type,
-          amount: amount,
-          shares: shares,
-          symbol: tickerSymbol,
-          cash: cash,
-          commission: commission,
+          date,
+          type,
+          amount,
+          shares,
+          symbol,
+          cash,
+          commission,
         },
       },
     }

@@ -297,3 +297,13 @@ export const getHistoricalEvents = async (
   }
   return { dividends, splits };
 };
+
+export const getLastKnownPrice = async (symbol:string):Promise<HistoricalPrice> => {
+  const data:HistoricalData = await getHistoricalData(symbol)
+  const prices:HistoricalPrice[] = data.prices
+  for (let i = prices.length - 1; i >=0; --i) {
+    if (prices[i].price > 0)
+      return prices[i]
+  }
+  return {date:new Date(Date.now()), price: 0}
+}

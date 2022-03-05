@@ -4,10 +4,11 @@ import {
   getTransactions,
   insertDividend,
   insertSplit,
+  sellAsset,
 } from "./mongo";
 import { Document } from "mongodb";
-import { getHistoricalEvents } from "./stocks";
-import { Dividend, Asset, Split, Lot, Transaction } from "./types";
+import { getHistoricalEvents, getLastKnownPrice, isValidSymbol } from "./stocks";
+import { Dividend, Asset, Split, Lot, Transaction, HistoricalPrice } from "./types";
 
 // TODO: make this a dedicated query in mongo.ts instead of getting all assets
 export const getQuantity = async (
@@ -123,3 +124,21 @@ export const insertDividendsAndSplits = async (
     }
   }
 };
+
+export const sellDeadAssets = async (user:Document) => {
+  const assets = await getAssets(user)
+  for (let asset of assets) {
+    const symbol = asset.stock.symbol
+    if (!await isValidSymbol(symbol)) {
+
+      var quantity: number = 0;
+      for (var lot of asset.lots) {
+        quantity += lot.shares;
+      }
+
+      const price:HistoricalPrice = await getLastKnownPrice(symbol)
+      console.log("Selling Dead Asset ", symbol)
+      sellAsset(user, symbol, price.price, quantity, price.date)
+    }
+  }
+}

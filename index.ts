@@ -31,7 +31,7 @@ import {
   UserInfo,
   HistoricalPrice,
 } from "./types";
-import { insertDividendsAndSplits } from "./Calculations";
+import { insertDividendsAndSplits, sellDeadAssets } from "./Calculations";
 
 global.fetch = require("node-fetch");
 const jwt = require("jsonwebtoken");
@@ -53,10 +53,11 @@ router.post("/API/login", express.json(), async (req, res) => {
   }
 
   const token = jwt.sign({ userId: foundUser._id }, process.env.JWT_SECRET, {
-    expiresIn: 20 * 60 * 1000, 
+    expiresIn:  20 * 60 , 
   });
 
   insertDividendsAndSplits(foundUser)
+  //sellDeadAssets(foundUser)
 
   const replyObject = {
     token,
