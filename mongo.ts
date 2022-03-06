@@ -111,7 +111,7 @@ export const getLots = async (
   user = await collection.findOne({_id: user._id})
 
   return user.positions.filter((position: { symbol: string }) => {
-    return position.symbol.toUpperCase() === symbol.toUpperCase();
+    return position.symbol.toUpperCase() == symbol.toUpperCase();
   })[0].lots;
 };
 
@@ -150,7 +150,7 @@ export const insertSplit = async (
 
   const originalLots: Lot[] = (await getUserByMongoId(user._id)).positions.filter(
     (position: { symbol: string }) => {
-      return position.symbol.toUpperCase() === symbol.toUpperCase();
+      return position.symbol.toUpperCase() == symbol.toUpperCase();
     }
   )[0].lots;
 
@@ -494,7 +494,7 @@ export const sellPosition = async (
   // Find the specific position from a ticker, grab the lots, and reverse them.
   const reversedLotsByTicker: Lot[] = positions
     .filter((position: { symbol: string }) => {
-      return position.symbol.toUpperCase() === tickerSymbol.toUpperCase();
+      return position.symbol.toUpperCase() == tickerSymbol.toUpperCase();
     })[0]
     .lots.reverse();
 
@@ -581,7 +581,7 @@ export const createPosition = async (
   const positions: Position[] = user.positions;
 
   positions.forEach((position) => {
-    if (position.symbol.toUpperCase() === tickerSymbol.toUpperCase()) {
+    if (position.symbol.toUpperCase() == tickerSymbol.toUpperCase()) {
       return createLot(user, lot, tickerSymbol);
     }
   });
