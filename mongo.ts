@@ -580,11 +580,12 @@ export const createPosition = async (
 ) => {
   const positions: Position[] = user.positions;
 
-  positions.forEach((position) => {
+  for (let position of positions) {
     if (position.symbol.toUpperCase() == tickerSymbol.toUpperCase()) {
-      return createLot(user, lot, tickerSymbol);
+      await createLot(user, lot, tickerSymbol);
+      return
     }
-  });
+  }
 
   // Create a new position for the ticker symbol
   await client.connect();
@@ -592,7 +593,7 @@ export const createPosition = async (
   const collection = db.collection("investors");
 
   const newPosition = { symbol: tickerSymbol, lots: [lot] };
-  //console.log("pushing new position ", JSON.stringify(newPosition));
+  console.log("pushing new position ", JSON.stringify(newPosition));
   const result: UpdateResult = await collection.updateOne(user, {
     $push: {
       positions: newPosition,
