@@ -21,20 +21,20 @@ const getInvestors = async () => {
 };
 
 export const login = async (
-  email: string,
+  userID: string,
   password: string
 ): Promise<Document> => {
   await client.connect();
   const db = client.db("investments");
   const collection = db.collection("investors");
 
-  const findObj = {email, password}
+  const findObj = {userID: userID, password}
   const foundUser = await collection.findOne(findObj);
   if (foundUser == null || foundUser === undefined) return null;
   return foundUser;
 };
 
-export const getUserById = async (userId: string): Promise<Document> => {
+export const getUserByMongoId = async (userId: string): Promise<Document> => {
   await client.connect();
   const db = client.db("investments");
   const collection = db.collection("investors");
@@ -67,17 +67,17 @@ export const  getAllSymbols = async():Promise<Set<string>> => {
   return symbols
 }
 
-export const getUserByEmail = async (email: string): Promise<Document> => {
+export const getUserByUserID = async (userID: string): Promise<Document> => {
   await client.connect();
   const db = client.db("investments");
   const collection = db.collection("investors");
-  const foundUser = await collection.findOne({ email: email });
+  const foundUser = await collection.findOne({ userID: userID });
   return foundUser;
   //return foundUser != undefined && foundUser != null;
 };
 
 export const createUser = async (
-  email: string,
+  userID: string,
   name: string,
   password: string
 ): Promise<Document> => {
@@ -87,7 +87,7 @@ export const createUser = async (
   const collection = db.collection("investors");
 
   await collection.insertOne({
-    email,
+    userID,
     password,
     name,
     created: new Date(),
@@ -96,7 +96,7 @@ export const createUser = async (
     cash: 0,
   });
 
-  return getUserByEmail(email);
+  return getUserByUserID(userID);
 };
 
 export const getLots = async (
@@ -148,7 +148,7 @@ export const insertSplit = async (
   );
 
 
-  const originalLots: Lot[] = (await getUserById(user._id)).positions.filter(
+  const originalLots: Lot[] = (await getUserByMongoId(user._id)).positions.filter(
     (position: { symbol: string }) => {
       return position.symbol.toUpperCase() === symbol.toUpperCase();
     }
@@ -188,7 +188,7 @@ export const insertSplit = async (
 
   //console.log("Results of Update: ", JSON.stringify(results))
 
-  const updatedLots: Lot[] = await (await getUserById(user._id)).positions.filter(
+  const updatedLots: Lot[] = await (await getUserByMongoId(user._id)).positions.filter(
     (position: { symbol: string }) => {
       return position.symbol.toUpperCase() === symbol.toUpperCase();
     }
@@ -273,7 +273,7 @@ export const makeGift = async (user: Document, amount: number) => {
 // }
 
 export const getCash = async (user: Document): Promise<number> => {
-  return (await getUserById(user._id)).cash;
+  return (await getUserByMongoId(user._id)).cash;
 };
 
 export const getAssets = async (user: Document): Promise<Asset[]> => {
@@ -397,7 +397,7 @@ export const buyAsset = async (
     );
 
     await collection.updateOne(
-      { email: user.email },
+      { userID: user.userID },
       {
         $set: {
           cash: cash,
@@ -438,7 +438,7 @@ export const sellAsset = async (
     );
 
     await collection.updateOne(
-      { email: user.email },
+      { userID: user.userID },
       {
         $set: {
           cash: cash,
@@ -468,7 +468,7 @@ export const createTransaction = async (
   const collection = db.collection("investors");
 
   await collection.updateOne(
-    { email: user.email },
+    { userID: user.userID },
     {
       $push: {
         transactions: {

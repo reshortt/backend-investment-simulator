@@ -28,7 +28,7 @@ export type Split = {
 
 export type UserInfo = {
   name: string;
-  email: string;
+  userID: string;
   cash: number;
   created: Date;
 }

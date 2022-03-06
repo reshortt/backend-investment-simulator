@@ -2,14 +2,17 @@ import express = require("express");
 import https = require("https");
 import cors = require("cors");
 import { Document } from "mongodb";
+const Hashes = require("jshashes");
+const MD5 = new Hashes.MD5();
+
 import {
   buyAsset,
   createUser,
   getAssets,
   getCash,
   getTransactions,
-  getUserByEmail,
-  getUserById,
+  getUserByUserID,
+  getUserByMongoId,
   login,
   makeGift,
   sellAsset,
@@ -40,11 +43,16 @@ const port: number = 3005;
 
 const router: express.Router = express.Router();
 
+const hashPassword = (clearText: string): string => {
+  return MD5.hex(clearText);
+};
+
 router.post("/API/login", express.json(), async (req, res) => {
   const password: string = req.body.password;
-  const email: string = req.body.email;
+  const userID: string = req.body.userID;
 
-  const foundUser: Document = await login(email, password);
+  const hashedPassword: string = hashPassword(password);
+  const foundUser: Document = await login(userID, hashedPassword);
   if (!foundUser) {
     const msg: string = "Invalid Credentials";
     console.log("Invalid creds");
@@ -61,7 +69,7 @@ router.post("/API/login", express.json(), async (req, res) => {
 
   const replyObject = {
     token,
-    email: foundUser.email,
+    userID: foundUser.userID,
     userName: foundUser.name,
   };
   res.status(200).send(replyObject);
@@ -133,31 +141,33 @@ router.get("/API/getStockPrice", async (req, res) => {
 });
 
 router.post("/API/signup", express.json(), async (req, res) => {
-  const email = req.body.email;
+  const userID = req.body.userID;
   const password = req.body.password;
   const name = req.body.name;
 
-  if (!email || !password) {
+  if (!userID || !password) {
     res.status(400);
     res.json({
-      message: "invalid email or password",
+      message: "invalid userID or password",
     });
     return;
   }
 
-  if (await getUserByEmail(email)) {
+  if (await getUserByUserID(userID)) {
     res.status(400);
     res.json({
-      message: "email already exists",
+      message: "userID already exists",
     });
     return;
   }
 
-  const user = await createUser(email, name, password);
+  const hashedPassword: string = hashPassword(password);
+  const user = await createUser(userID, name, hashedPassword);
+
   makeGift(user, 1000000);
 
   res.status(200);
-  res.json({ message: "User " + email + " successfully added and given $1M" });
+  res.json({ message: "User " + userID + " successfully added and given $1M" });
   return;
 });
 
@@ -166,7 +176,7 @@ router.get("/API/getUserInfo", async (req, res) => {
   if (!foundUser) return;
   const userInfo: UserInfo = {
     name: foundUser.name,
-    email: foundUser.email,
+    userID: foundUser.userID,
     cash: foundUser.cash,
     created: foundUser.created,
   };
@@ -200,7 +210,7 @@ router.get("/API/getAccount", async (req, res) => {
   const account: Account = {
     info: {
       name: foundUser.name,
-      email: foundUser.emai,
+      userID: foundUser.emai,
       cash: foundUser.cash,
       created: foundUser.created,
     },
@@ -251,7 +261,7 @@ const verifyUser = async (req, res): Promise<Document> => {
     // TODO: send token expiry notice
     return null;
   }
-  foundUser = await getUserById(payload.userId);
+  foundUser = await getUserByMongoId(payload.userId);
   return foundUser;
 };
 
