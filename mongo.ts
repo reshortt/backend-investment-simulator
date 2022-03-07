@@ -24,22 +24,19 @@ export const login = async (
   userID: string,
   password: string
 ): Promise<Document> => {
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
+  const collection = await getInvestors()
 
-  const findObj = {userID: userID, password}
+  const findObj = {userID: {'$regex' : userID, '$options' : 'i'}, password}
   const foundUser = await collection.findOne(findObj);
   if (foundUser == null || foundUser === undefined) return null;
   return foundUser;
 };
 
-export const getUserByMongoId = async (userId: string): Promise<Document> => {
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
+export const getUserByMongoId = async (mongoID: string): Promise<Document> => {
+
+  const collection = await getInvestors()
   const foundUser = await collection.findOne({
-    _id: new ObjectId(userId),
+    _id: new ObjectId(mongoID),
   });
   if (!foundUser) {
     return null;
@@ -48,11 +45,11 @@ export const getUserByMongoId = async (userId: string): Promise<Document> => {
 };
 
 export const  getAllSymbols = async():Promise<Set<string>> => {
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
+
+  const collection = await getInvestors()
 
   const symbols:Set<string> = new Set()
+  console.log("---------- Getting symbols at ", new Date(Date.now()).toTimeString(), "--------------------")
 
   // get all users
   const cursor:FindCursor<Document> = collection.find({}) 
@@ -64,14 +61,14 @@ export const  getAllSymbols = async():Promise<Set<string>> => {
     }
   })  
 
+  console.log("Returning symbols: ", symbols.size)
   return symbols
 }
 
 export const getUserByUserID = async (userID: string): Promise<Document> => {
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
-  const foundUser = await collection.findOne({ userID: userID });
+ 
+  const collection = await getInvestors()
+  const foundUser = await collection.findOne({ userID: {'$regex' : userID, '$options' : 'i'} });
   return foundUser;
   //return foundUser != undefined && foundUser != null;
 };
@@ -81,10 +78,8 @@ export const createUser = async (
   name: string,
   password: string
 ): Promise<Document> => {
-  // add to the collection
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
+ 
+  const collection = await getInvestors()
 
   await collection.insertOne({
     userID,
@@ -104,9 +99,7 @@ export const getLots = async (
   symbol: string
 ): Promise<Lot[]> => {
   
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
+  const collection = await getInvestors()
 
   user = await collection.findOne({_id: user._id})
 
@@ -124,9 +117,7 @@ export const insertSplit = async (
   from: number,
   to: number
 ) => {
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
+  const collection = await getInvestors()
 
   const newDate = new Date(date);
   const newCash = await getCash(user);
@@ -205,9 +196,7 @@ export const insertDividend = async (
   amount: number,
   shares: number
 ) => {
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
+  const collection = await getInvestors()
 
   const totalDividend = amount * shares;
   const newCash = (await getCash(user)) + totalDividend;
@@ -240,9 +229,8 @@ export const insertDividend = async (
 };
 
 export const makeGift = async (user: Document, amount: number) => {
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
+
+  const collection = await getInvestors()
   await collection.updateOne(
     { _id: user._id },
     {
@@ -383,9 +371,8 @@ export const buyAsset = async (
     await createPosition(user, tickerSymbol, lot);
 
     const cash = user.cash - totalPrice;
-    await client.connect();
-    const db = client.db("investments");
-    const collection = db.collection("investors");
+
+    const collection = await getInvestors()
     await createTransaction(
       user,
       TransactionType.BUY,
@@ -423,9 +410,7 @@ export const sellAsset = async (
     await sellPosition(user, tickerSymbol, shares);
 
     const cash = user.cash + totalProceeds;
-    await client.connect();
-    const db = client.db("investments");
-    const collection = db.collection("investors");
+    const collection = await getInvestors()
     await createTransaction(
       user,
       TransactionType.SELL,
@@ -463,9 +448,7 @@ export const createTransaction = async (
   commission: number,
   date: Date = new Date (Date.now())
 ) => {
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
+  const collection = await getInvestors()
 
   await collection.updateOne(
     { userID: user.userID },
@@ -537,9 +520,7 @@ export const sellPosition = async (
 
   const newLotsInOriginalOrder = reversedLotsByTicker.reverse();
 
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
+  const collection = await getInvestors()
 
   if (newLotsInOriginalOrder.length > 0) {
     await collection.updateOne(
@@ -588,9 +569,7 @@ export const createPosition = async (
   }
 
   // Create a new position for the ticker symbol
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
+  const collection = await getInvestors()
 
   const newPosition = { symbol: tickerSymbol, lots: [lot] };
   console.log("pushing new position ", JSON.stringify(newPosition));
@@ -606,9 +585,7 @@ export const createLot = async (
   lot: Lot,
   tickerSymbol: string
 ) => {
-  await client.connect();
-  const db = client.db("investments");
-  const collection = db.collection("investors");
+  const collection = await getInvestors()
   // Find the user's position's element we need to update
 
   return collection.updateOne(

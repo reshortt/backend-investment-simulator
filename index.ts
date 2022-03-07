@@ -33,6 +33,7 @@ import {
   Account,
   UserInfo,
   HistoricalPrice,
+  INITIAL_GIFT,
 } from "./types";
 import { insertDividendsAndSplits, sellDeadAssets } from "./Calculations";
 
@@ -156,7 +157,7 @@ router.post("/API/signup", express.json(), async (req, res) => {
   if (await getUserByUserID(userID)) {
     res.status(400);
     res.json({
-      message: "userID already exists",
+      message: "User ID " + userID + " is unavailable",
     });
     return;
   }
@@ -164,7 +165,7 @@ router.post("/API/signup", express.json(), async (req, res) => {
   const hashedPassword: string = hashPassword(password);
   const user = await createUser(userID, name, hashedPassword);
 
-  makeGift(user, 1000000);
+  makeGift(user, INITIAL_GIFT);
 
   res.status(200);
   res.json({ message: "User " + userID + " successfully added and given $1M" });
